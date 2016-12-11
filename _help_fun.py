@@ -7,7 +7,7 @@ from flask import flash
 
 def check_df(df, update=False):
     valid = True
-    valid_cols = set(['1а', 1])
+    valid_cols = set(['1а', '1'])
     problems_dict = dict()
     sub = False
 
@@ -16,7 +16,7 @@ def check_df(df, update=False):
         sub = ['1а', '_id']
 
     if valid_cols & set(df.columns) != valid_cols:
-        problems_dict['Нет необходимых колонок'] = valid_cols - set(df.columns)
+        problems_dict['Нет необходимых колонок'] = list(valid_cols - set(df.columns))
         valid = False
 
     if sub and valid:
@@ -55,7 +55,7 @@ def message_former_from(message_dict):
     return message
 
 
-def read_excel(filename, update=False):
+def read_excel(filename, actual=False):
     try:
         f = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
@@ -74,12 +74,33 @@ def read_excel(filename, update=False):
         print(str(e))
         raise e
 
-    problems, valid = check_df(df, update=update)
-    if not valid:
+    problems_array = []
+    df_new_rows = df[pd.isnull(df['_id'])]
+    if not df_new_rows.empty:
+        problems_1, valid = check_df(df_new_rows, update=False)
+        if not valid:
+            problems_array.append(problems_1)
+
+    if actual:
+        df_update_rows = df[~pd.isnull(df['_id'])]
+        problems_2, valid = check_df(df_update_rows, update=True)
+        if not valid:
+            problems_array.append(problems_2)
+
+    if problems_array:
+        problems = dict()
+        for probl_dict in problems_array:
+            for p in list(probl_dict):
+                if p in problems:
+                    problems[p].extend(probl_dict[p])
+                else:
+                    problems[p] = probl_dict[p]
+
         flash(message_former_from(problems), category='error')
+        print(message_former_from(problems))
         os.remove(f)
         raise Exception('Invalid registry file')
-    
+
     df = former_df(df, ['1а', 'change_info'])
     df['filename'] = filename.split('.')[0]
 
