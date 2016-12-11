@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+
+{% for db in dbs %}
+<!-- <form action="/download/{{db}}" method="GET">
+	<input type="submit" value="Скачать {{db}}" class="btn btn-link"/>
+</form> -->
+<button id="{{db}}" class="btn btn-link" onclick="return(downloadDB(this))">Скачать {{ db }}</button>
+<!--<div id="progressCounter_{{db}}"></div><br>-->
+<div id="loading_{{db}}" hidden="true">Файл формируется</div><br>
+{% endfor %}
+
+{% endblock %}

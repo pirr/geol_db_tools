@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block body %}
+<ul>
+{% for row in rows %}
+<!-- <form action="/download/{{db}}" method="GET">
+	<input type="submit" value="Скачать {{db}}" class="btn btn-link"/>
+</form> -->
+    <li>{{ row }}</li>
+{% endfor %}
+</ul>
+{% endblock %}

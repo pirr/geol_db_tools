@@ -1,0 +1,20 @@
+{% from "_formhelpers.html" import render_field %}
+{% extends "base.html" %}
+{% block body %}
+	<h4>{{ title }}</h4>
+	{% with messages = get_flashed_messages() %}
+	{% if messages %}
+		<ul class=flashes>
+		{% for message in messages %}
+		<li>{{ message }}</li>
+		{% endfor %}
+		</ul>
+	{% endif %}
+	{% endwith %}
+	<form id="upload_form" enctype=multipart/form-data class="form-horizontal" method="POST" action="{{ url_for('upload_file', type=type) }}" enctype=multipart/form-data>
+	    {{ render_field(form.file) }}
+	  	<button class="btn btn-success" type="submit">Загрузить</button>
+	</form>
+{% endblock %}
+
+
