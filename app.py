@@ -70,26 +70,40 @@ def import_file(filename, type):
     # try:
     update = False
     if type == 'actual':
-        update = True
-    df = read_excel(filename, update=update)
-    data_json = df.to_json(orient='records')
-    data_dict = json.loads(data_json)
-    data_dict = [{k: v for k, v in d.items() if v is not None}
-                 for d in data_dict]
-    res = cdb.update(data_dict)
+        actual = True
+    data = read_excel(filename, actual=False)
+    dfs = []
+    df_new_rows = data[pd.isnull(data['_id'])]
+    df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
+    if not df_new_rows.empty:
+        dfs.append(df_new_rows)
 
-    regs_info = cdb['regs_info']
-    reg_name = filename.split('.')[0]
-    t = datetime.now().strftime("%Y-%m-%d_%H-%M")
+    if actual:
+        df_updated_rows = data[~pd.isnull(data['_id'])]
+        if not df_updated_rows.empty:
+            dfs.append(df_updated_rows)
+    if dfs:
+        for df in dfs:
+            if not df.empty:
+                data_json = df.to_json(orient='records')
+                data_dict = json.loads(data_json)
+                res = cdb.update(data_dict)
 
-    if type == 'new':
-        regs_info[reg_name] = {'created': t,
-                               'modified': t}
+        regs_info = cdb['regs_info']
+        reg_name = filename.split('.')[0]
+        t = datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+        if type == 'new':
+            regs_info[reg_name] = {'created': t,
+                                   'modified': t}
+        else:
+            regs_info[reg_name]['modified'] = t
+
+        cdb['regs_info'] = regs_info
+        print('RES:', res)
+
     else:
-        regs_info[reg_name]['modified'] = t
-
-    cdb['regs_info'] = regs_info
-    print('RES:', res)
+        raise Exception('Реестр пуст')
     # except Exception as e:
     #     return redirect(url_for('upload_file', type=type))
 
