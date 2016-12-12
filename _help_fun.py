@@ -7,7 +7,7 @@ from flask import flash
 
 def check_df(df, update=False):
     valid = True
-    valid_cols = set(['1а', '1'])
+    valid_cols = set(['1а', 1])
     problems_dict = dict()
     sub = False
 
@@ -17,17 +17,12 @@ def check_df(df, update=False):
 
     if valid_cols & set(df.columns) != valid_cols:
         problems_dict['Нет необходимых колонок'] = list(valid_cols - set(df.columns))
-        valid = False
 
     if sub and valid:
         duplicates = df[sub].duplicated(keep=False)
         if not df[duplicates].empty:
             problems_dict['Дубликаты актуальных строк'] = df[duplicates].groupby(sub)[
                 1].apply(list).tolist()
-            valid = False
-
-    # unique_by_num = df.groupby([1])
-    # unique_id_list = unique_by_num['1а'].apply(list)
 
     if problems_dict:
         valid = False
