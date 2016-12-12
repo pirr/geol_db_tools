@@ -6,7 +6,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 
-UPLOAD_FOLDER = 'uploads'
+UPLOAD_FOLDER = 'd:\\Smaga\\bitbucket\\geol_db_tools\\geol_db_tools\\uploads'
 ALLOWED_EXTENSIONS = set(['xls', 'xlsx'])
 COUCH_URL = 'http://localhost:5984'
 
