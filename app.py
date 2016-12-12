@@ -129,7 +129,8 @@ def download_regist(reg_name):
 
     for _id in df.loc[df['rev_num'] != '1', '_id']:
         for rev in cdb.revisions(_id):
-            print(rev['num']) 
+            ref_dv = pd.DataFrame({k: v for k, v in rev.items() if k!='1а'}, index=[0])
+            df = df.append(ref_dv, ignore_index=True)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
