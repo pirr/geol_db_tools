@@ -65,6 +65,11 @@ def upload_file(type):
 def uploads_file(filename, type):
     send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+    if type == 'actual':
+        os.rename(os.path.join(app.config['UPLOAD_FOLDER'], filename), 
+                    os.path.join(app.config['UPLOAD_FOLDER'], session['reg_name'] + '.xls'))
+        filename = session['reg_name'] + '.xls'
+
     return redirect(url_for('import_file', filename=filename, type=type))
 
 
