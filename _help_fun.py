@@ -7,13 +7,15 @@ from flask import flash
 
 def check_df(df, update=False):
     valid = True
-    valid_cols = set(['1а', 1])
     problems_dict = dict()
     sub = False
 
     if update:
-        valid_cols = valid_cols | {'_id', '_rev'}
+        valid_cols = set(['1а', '1','_id', '_rev'])
         sub = ['1а', '_id']
+    
+    else:
+         valid_cols = set(['1а', 1])
 
     if valid_cols & set(df.columns) != valid_cols:
         problems_dict['Нет необходимых колонок'] = list(valid_cols - set(df.columns))
