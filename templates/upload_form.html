@@ -13,6 +13,9 @@
 	{% endwith %}
 	<form id="upload_form" enctype=multipart/form-data class="form-horizontal" method="POST" action="{{ url_for('upload_file', type=type) }}" enctype=multipart/form-data>
 	    {{ render_field(form.file) }}
+		{% if type=='actual' %}
+			{{ render_field(form.regs_select) }}
+		{% endif %}
 	  	<button class="btn btn-success" type="submit">Загрузить</button>
 	</form>
 {% endblock %}
