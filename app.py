@@ -3,6 +3,7 @@
 
 import os
 import json
+from shutil import move
 
 from io import BytesIO
 from datetime import datetime
@@ -66,7 +67,7 @@ def uploads_file(filename, type):
     send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     if type == 'actual':
-        os.rename(os.path.join(app.config['UPLOAD_FOLDER'], filename), 
+        move(os.path.join(app.config['UPLOAD_FOLDER'], filename), 
                     os.path.join(app.config['UPLOAD_FOLDER'], session['reg_name'] + '.xls'))
         filename = session['reg_name'] + '.xls'
 
