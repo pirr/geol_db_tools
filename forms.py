@@ -3,33 +3,48 @@
 import os
 from flask import session
 from flask_wtf import FlaskForm
+from wtforms import SelectField
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from setup import app
-# from wtforms import StringField, PasswordField, validators
+from setup import app, cdb
 
 
 ALLOWED_EXTENSIONS = ['xls', 'xlsx']
+ALL_REGS = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 class UploadForm(FlaskForm):
     file = FileField('Название файла (только лат.)', validators=[
         FileRequired('Файл не выбран'), FileAllowed(ALLOWED_EXTENSIONS,
         'Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))])
+    regs_select = SelectField('Реестр для обновления', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
 
-    # def validate(self):
-    #     filename = self.file.data.filename
-    #     self.file.errors = list(self.file.errors)
-    #     # if filename in os.listdir(app.config['UPLOAD_FOLDER']):
-    #     #     self.file.errors.append('Файл с таким именем уже существует')
-    #     #     return False
-    #     if filename == '':
-    #         self.file.errors.append('Файл не выбран')
-    #         return False
-    #     if '.' in filename and filename.split('.')[-1] in ALLOWED_EXTENSIONS
-    #     self.file.errors = tuple(self.file.errors)
-    #     # if self.file.errors:
-    #     #     return False
-    #     return True
+    def validate(self):
+        filename = self.file.data.filename
+        reg_name = self.regs_select.data
+        self.file.errors = list(self.file.errors)
+        self.regs_select.errors = list(self.regs_select.errors)
+        # if filename in os.listdir(app.config['UPLOAD_FOLDER']):
+        #     self.file.errors.append('Файл с таким именем уже существует')
+        #     return False
+        if filename.strip() == '':
+            self.file.errors.append('Файл не выбран')
+            return False
+
+        if not allowed_file(filename):
+            self.file.errors.append('Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))
+            return False
+        
+        if reg_name not in ALL_REGS:
+            self.regs_select.errors.append('Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
+            return False
+        
+        self.file.errors = tuple(self.file.errors)
+        self.regs_select.errors = tuple(self.regs_select.errors)
+
+        return True
 
 
 # class RequestFormIzuch(FlaskForm):
