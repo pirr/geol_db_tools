@@ -8,7 +8,7 @@ from io import BytesIO
 from datetime import datetime
 from flask import (request, redirect, url_for,
                    render_template, send_from_directory,
-                   session, send_file)
+                   session, send_file, session)
 import requests
 # from forms import RequestForm, RequestFormIzuch
 # from manage import User
@@ -41,6 +41,9 @@ def upload_file(type):
         # print(filename)
         form.file.data.save(os.path.join(
             app.config['UPLOAD_FOLDER'], filename))
+        
+        if type == 'actual':
+            session['reg_name'] = form.regs_select.data
 
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
