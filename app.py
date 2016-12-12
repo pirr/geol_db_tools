@@ -127,6 +127,10 @@ def download_regist(reg_name):
 
     df['rev_num'] = df['_rev'].str.split('-').str.get(0)
 
+    for _id in df.loc[df['rev_num'] != '1', '_id']:
+        for rev in cdb.revisions(_id):
+            print(rev['num']) 
+
     output = BytesIO()
     writer = pd.ExcelWriter(output)
 
