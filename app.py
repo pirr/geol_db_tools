@@ -91,12 +91,12 @@ def import_file(filename, type):
         df_updated_rows = data[~pd.isnull(data['_id'])]
         if not df_updated_rows.empty:
             dfs.append(df_updated_rows)
+    
     if dfs:
         for df in dfs:
-            if not df.empty:
-                data_json = df.to_json(orient='records')
-                data_dict = json.loads(data_json)
-                res = cdb.update(data_dict)
+            data_json = df.to_json(orient='records')
+            data_dict = json.loads(data_json)
+            res = cdb.update(data_dict)
 
         regs_info = cdb['regs_info']
         reg_name = filename.split('.')[0]
