@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block body %}
 
+<label>
+<input type="checkbox" id="actualCheckbox"> Скачать для актуализации (документы с последними измменениями)
+</label>
+</br>
 {% for db in dbs %}
 <!-- <form action="/download/{{db}}" method="GET">
 	<input type="submit" value="Скачать {{db}}" class="btn btn-link"/>
@@ -8,6 +12,7 @@
 <button id="{{db}}" class="btn btn-link" onclick="return(downloadDB(this))">Скачать {{ db }}</button>
 <!--<div id="progressCounter_{{db}}"></div><br>-->
 <div id="loading_{{db}}" hidden="true">Файл формируется</div><br>
+
 {% endfor %}
 
 {% endblock %}
