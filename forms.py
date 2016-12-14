@@ -37,14 +37,17 @@ class UploadForm(FlaskForm):
             self.file.errors.append('Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))
             return False
         
-        if reg_name not in ALL_REGS:
-            self.regs_select.errors.append('Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
-            return False
+        # TODO NEED FIX OR DIFFERENT FORMS!
+        # if reg_name not in ALL_REGS:
+        #     self.regs_select.errors.append('Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
+        #     return False
         
         self.file.errors = tuple(self.file.errors)
         self.regs_select.errors = tuple(self.regs_select.errors)
 
         return True
+
+
 
 
 # class RequestFormIzuch(FlaskForm):
