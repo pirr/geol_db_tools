@@ -11,20 +11,22 @@ def check_df(df, update=False):
     sub = False
 
     if update:
-        valid_cols = set(['1а', '1','_id', '_rev'])
+        valid_cols = set(['1а', '1', '_id', '_rev'])
         sub = ['1а', '_id']
-    
+
     else:
-         valid_cols = set(['1а', 1])
+        valid_cols = set(['1а', '1'])
 
     if valid_cols & set(df.columns) != valid_cols:
-        problems_dict['Нет необходимых колонок'] = list(valid_cols - set(df.columns))
+        problems_dict['Нет необходимых колонок'] = list(
+            valid_cols - set(df.columns))
+        valid = False
 
     if sub and valid:
         duplicates = df[sub].duplicated(keep=False)
         if not df[duplicates].empty:
             problems_dict['Дубликаты актуальных строк'] = df[duplicates].groupby(sub)[
-                1].apply(list).tolist()
+                '1'].apply(list).tolist()
 
     if problems_dict:
         valid = False
