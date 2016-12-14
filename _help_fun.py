@@ -73,6 +73,9 @@ def read_excel(filename, actual=False):
         print(str(e))
         raise e
 
+    df.columns = [str(c) for c in df.columns]
+    
+    # TODO function
     problems_array = []
     df_new_rows = df[pd.isnull(df['_id'])]
     if not df_new_rows.empty:
@@ -82,9 +85,10 @@ def read_excel(filename, actual=False):
 
     if actual:
         df_update_rows = df[~pd.isnull(df['_id'])]
-        problems_2, valid = check_df(df_update_rows, update=True)
-        if not valid:
-            problems_array.append(problems_2)
+        if not df_update_rows.empty:
+            problems_2, valid = check_df(df_update_rows, update=True)
+            if not valid:
+                problems_array.append(problems_2)
 
     if problems_array:
         problems = dict()
