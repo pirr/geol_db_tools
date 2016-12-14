@@ -15,11 +15,11 @@ def check_df(df, update=False):
     sub = False
 
     if update:
-        valid_cols = set(['1а', '1', '_id', '_rev'])
-        sub = ['1а', '_id']
+        valid_cols = set(['Актуальность строки', '№ строки', '_id', '_rev'])
+        sub = ['Актуальность строки', '_id']
 
     else:
-        valid_cols = set(['1а', '1'])
+        valid_cols = set(['Актуальность строки', '№ строки'])
 
     if valid_cols & set(df.columns) != valid_cols:
         problems_dict['Нет необходимых колонок'] = list(
@@ -30,7 +30,7 @@ def check_df(df, update=False):
         duplicates = df[sub].duplicated(keep=False)
         if not df[duplicates].empty:
             problems_dict['Дубликаты актуальных строк'] = df[duplicates].groupby(sub)[
-                '1'].apply(list).tolist()
+                '№ строки'].apply(list).tolist()
 
     if problems_dict:
         valid = False
@@ -69,7 +69,8 @@ def read_excel(filename, actual=False):
         # xls = xlrd.open_workbook(f, on_demand=True)
         # print(xls.sheet_names())
         df = pd.read_excel(f, sheetname='reestr', skiprows=2)
-
+        df['Дата регистрации'] = df['Дата регистрации'].astype(str)
+        df['Дата'] = df['Дата'].astype(str)
     except Exception as e:
         flash('''Проблемы при чтении файла. Возможно в файле {} нет листа reestr'''.format(
             filename), category='error')
@@ -78,10 +79,13 @@ def read_excel(filename, actual=False):
         raise e
 
     df.columns = [str(c) for c in df.columns]
-    
+
     # TODO validate function
     problems_array = []
-    df_new_rows = df[pd.isnull(df['_id'])]
+    if '_id' in df.columns:
+        df_new_rows = df[pd.isnull(df['_id'])]
+    else:
+        df_new_rows = df
     if not df_new_rows.empty:
         problems_1, valid = check_df(df_new_rows, update=False)
         if not valid:
@@ -108,19 +112,21 @@ def read_excel(filename, actual=False):
         os.remove(f)
         raise Exception('Invalid registry file')
 
-    df = former_df(df, ['1а', 'change_info'])
+    df = former_df(df, ['Актуальность строки',
+                        'Операция внесения (добавление, изменение, удаление)'])
     df['filename'] = filename.split('.')[0]
 
     # TODO function
     if actual:
         duplicates = df['_id'].duplicated(keep=False)
         none_duplicates = df[~duplicates]
+
         selector = {'filename': {'$eq': filename.split('.')[0]}}
         docs = mango_query(cdb, **selector)
         df_db = pd.DataFrame(docs)
-        
-        df_db = df_db.append(none_duplicates.drop('rev_num', axis=1))
-        df_db.drop('rev_num', axis=1, inplace=True)
+
+        df_db = df_db.append(none_duplicates)
+        df_db.drop('№ изменений', axis=1, inplace=True)
         df_db.fillna(np.nan, inplace=True)
         db_duplicates = df_db.duplicated(keep=False)
         print(db_duplicates)

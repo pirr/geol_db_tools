@@ -91,7 +91,7 @@ def import_file(filename, type):
         df_updated_rows = data[~pd.isnull(data['_id'])]
         
         if not df_updated_rows.empty:
-            df_updated_rows['rev_num'] = df_updated_rows['_rev'].str.split('-').str.get(0)
+            # df_updated_rows['№ изменений'] = df_updated_rows['_rev'].str.split('-').str.get(0)
             dfs.append(df_updated_rows)
     
     if dfs:
@@ -131,12 +131,12 @@ def download_regist(reg_name, with_revs):
 
     if with_revs == 'yes':
 
-        for _id in df.loc[~pd.isnull(df['rev_num']), '_id']:
+        for _id in df.loc[~pd.isnull(df['№ изменений']), '_id']:
             for rev in cdb.revisions(_id):
                 ref_dv = pd.DataFrame({k: v for k, v in rev.items() if k!='1а'}, index=[0])
                 df = df.append(ref_dv, ignore_index=True)
 
-    df['rev_num'] = df['_rev'].str.split('-').str.get(0)
+    df['№ изменений'] = df['_rev'].str.split('-').str.get(0)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
