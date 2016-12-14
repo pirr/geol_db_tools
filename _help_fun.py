@@ -79,7 +79,7 @@ def read_excel(filename, actual=False):
 
     df.columns = [str(c) for c in df.columns]
     
-    # TODO function
+    # TODO validate function
     problems_array = []
     df_new_rows = df[pd.isnull(df['_id'])]
     if not df_new_rows.empty:
@@ -122,7 +122,6 @@ def read_excel(filename, actual=False):
         df_db = df_db.append(none_duplicates.drop('rev_num', axis=1))
         df_db.drop('rev_num', axis=1, inplace=True)
         df_db.fillna(np.nan, inplace=True)
-        print('DB:', df_db)
         db_duplicates = df_db.duplicated(keep=False)
         print(db_duplicates)
         db_dupl_id = df_db.loc[db_duplicates, '_id']
