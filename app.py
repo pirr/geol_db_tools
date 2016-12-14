@@ -45,7 +45,7 @@ def upload_file(type):
         
         if type == 'actual':
             session['reg_name'] = form.regs_select.data
-
+        
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
     filename = None
@@ -77,28 +77,40 @@ def uploads_file(filename, type):
 @app.route('/import/<filename>-<type>')
 def import_file(filename, type):
     # try:
-    update = False
+
     if type == 'actual':
         actual = True
+    else:
+        actual = False
+
     data = read_excel(filename, actual=actual)
+    
     dfs = []
-    df_new_rows = data[pd.isnull(data['_id'])]
-    df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
-    if not df_new_rows.empty:
-        dfs.append(df_new_rows)
+    
 
     if actual:
+        df_new_rows = data[pd.isnull(data['_id'])]
+        df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
+        if not df_new_rows.empty:
+            dfs.append(df_new_rows)
         df_updated_rows = data[~pd.isnull(data['_id'])]
         
         if not df_updated_rows.empty:
             # df_updated_rows['№ изменений'] = df_updated_rows['_rev'].str.split('-').str.get(0)
             dfs.append(df_updated_rows)
+    else:
+        dfs.append(data)
     
     if dfs:
         for df in dfs:
-            data_json = df.to_json(orient='records')
-            data_dict = json.loads(data_json)
-            res = cdb.update(data_dict)
+            try:
+                df.fillna('', inplace=True)
+                df.replace('nan', '', inplace=True)
+                data_dict = df.to_dict(orient='records')
+                # data_dict = json.loads(data_json)
+                res = cdb.update(data_dict)
+            except Exception as e:
+                raise e
 
         regs_info = cdb['regs_info']
         reg_name = filename.split('.')[0]
