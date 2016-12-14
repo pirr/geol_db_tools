@@ -119,18 +119,20 @@ def import_file(filename, type):
     return redirect(url_for('regs_list'))
 
 
-@app.route('/download/<reg_name>', methods=['GET', 'POST'])
-def download_regist(reg_name):
+@app.route('/download/<reg_name>-<with_revs>', methods=['GET', 'POST'])
+def download_regist(reg_name, with_revs):
     selector = {'filename': {'$eq': reg_name}}
     docs = mango_query(cdb, **selector)
     df = pd.DataFrame(docs)
 
-    df['rev_num'] = df['_rev'].str.split('-').str.get(0)
+    if with_revs == 'yes':
 
-    for _id in df.loc[df['rev_num'] != '1', '_id']:
-        for rev in cdb.revisions(_id):
-            ref_dv = pd.DataFrame({k: v for k, v in rev.items() if k!='1а'}, index=[0])
-            df = df.append(ref_dv, ignore_index=True)
+        for _id in df.loc[~pd.isnull(df['rev_num']), '_id']:
+            for rev in cdb.revisions(_id):
+                ref_dv = pd.DataFrame({k: v for k, v in rev.items() if k!='1а'}, index=[0])
+                df = df.append(ref_dv, ignore_index=True)
+
+    df['rev_num'] = df['_rev'].str.split('-').str.get(0)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
@@ -148,10 +150,10 @@ def download_regist(reg_name):
 
 @app.route('/get_download', methods=['GET', 'POST'])
 def get_download():
-    with_revs = request.args.get('with_revs')
+    with_revs = request.args.get('withRevs')
     print(with_revs)
     reg_name = request.args.get('reg_name')
-    return redirect(url_for('download_regist', reg_name=reg_name))
+    return redirect(url_for('download_regist', reg_name=reg_name, with_revs=with_revs))
 
 
 # @app.route('/clear_session', methods=['GET', 'POST'])
