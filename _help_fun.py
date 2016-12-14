@@ -1,8 +1,12 @@
 import os
+import numpy as np
 import pandas as pd
 
 from setup import app
 from flask import flash
+
+from setup import cdb
+from views import mango_query
 
 
 def check_df(df, update=False):
@@ -106,6 +110,23 @@ def read_excel(filename, actual=False):
 
     df = former_df(df, ['1а', 'change_info'])
     df['filename'] = filename.split('.')[0]
+
+    # TODO function
+    if actual:
+        duplicates = df['_id'].duplicated(keep=False)
+        none_duplicates = df[~duplicates]
+        selector = {'filename': {'$eq': filename.split('.')[0]}}
+        docs = mango_query(cdb, **selector)
+        df_db = pd.DataFrame(docs)
+        
+        df_db = df_db.append(none_duplicates.drop('rev_num', axis=1))
+        df_db.drop('rev_num', axis=1, inplace=True)
+        df_db.fillna(np.nan, inplace=True)
+        print('DB:', df_db)
+        db_duplicates = df_db.duplicated(keep=False)
+        print(db_duplicates)
+        db_dupl_id = df_db.loc[db_duplicates, '_id']
+        df = df[~df['_id'].isin(db_dupl_id)]
 
     return df
 

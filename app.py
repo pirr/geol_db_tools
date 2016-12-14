@@ -80,7 +80,7 @@ def import_file(filename, type):
     update = False
     if type == 'actual':
         actual = True
-    data = read_excel(filename, actual=False)
+    data = read_excel(filename, actual=actual)
     dfs = []
     df_new_rows = data[pd.isnull(data['_id'])]
     df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
@@ -89,7 +89,9 @@ def import_file(filename, type):
 
     if actual:
         df_updated_rows = data[~pd.isnull(data['_id'])]
+        
         if not df_updated_rows.empty:
+            df_updated_rows['rev_num'] = df_updated_rows['_rev'].str.split('-').str.get(0)
             dfs.append(df_updated_rows)
     
     if dfs:
@@ -109,12 +111,14 @@ def import_file(filename, type):
             regs_info[reg_name]['modified'] = t
 
         cdb['regs_info'] = regs_info
-        print('RES:', res)
+        # print('RES:', res)
 
     else:
-        raise Exception('Реестр пуст')
+        raise Exception('Реестр пуст или нет новых строк')
     # except Exception as e:
     #     return redirect(url_for('upload_file', type=type))
+
+    
 
     return redirect(url_for('regs_list'))
 
