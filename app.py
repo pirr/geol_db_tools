@@ -146,12 +146,21 @@ def download_regist(reg_name, with_revs):
 
     if with_revs == 'yes':
 
-        for _id in df.loc[~pd.isnull(df['№ изменений']), '_id']:
-            for rev in cdb.revisions(_id):
-                ref_dv = pd.DataFrame({k: v for k, v in rev.items() if k!='1а'}, index=[0])
-                df = df.append(ref_dv, ignore_index=True)
+        df_revs = df.loc[~pd.isnull(df['№ изменений']), '_id']
 
-    df['№ изменений'] = df['_rev'].str.split('-').str.get(0)
+        if not df_revs.empty:
+            print('revs!')
+            
+            for _id in df_revs:
+                for i, rev in enumerate(cdb.revisions(_id)):
+                    if i:
+                        ref_dv = pd.DataFrame({k: v for k, v in rev.items()}, index=[0])
+                        df = df.append(ref_dv, ignore_index=True)
+        df_deleted = df.loc[df['Операция внесения (добавление, изменение, удаление)'] == 'удаление', '_id']
+        df.loc[df['_id'].isin(df_deleted), 'Актуальность строки'] = ''
+    
+    df['rev_num'] = df['_rev'].str.split('-').str.get(0)
+    df['№ изменений'] = df['rev_num'].apply(lambda x: int(x) - 1 if int(x) > 1 else np.nan)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
