@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from setup import app
+from setup import app, REGISTRY_COLUMNS
 from flask import flash
 
 from setup import cdb
@@ -78,7 +78,7 @@ def read_excel(filename, actual=False):
         print(str(e))
         raise e
 
-    df.columns = [str(c) for c in df.columns]
+    df.columns = [REGISTRY_COLUMNS + ['_id', '_rev']]
 
     # TODO validate function
     problems_array = []
