@@ -120,17 +120,27 @@ def read_excel(filename, actual=False):
     if actual:
         duplicates = df['_id'].duplicated(keep=False)
         none_duplicates = df[~duplicates]
+        print(len(none_duplicates))
 
         selector = {'filename': {'$eq': filename.split('.')[0]}}
         docs = mango_query(cdb, **selector)
         df_db = pd.DataFrame(docs)
 
         df_db = df_db.append(none_duplicates)
-        df_db.drop('№ изменений', axis=1, inplace=True)
-        df_db.fillna(np.nan, inplace=True)
+        df_db = df_db[REGISTRY_COLUMNS + ['_id', '_rev']].drop(['№ изменений', 
+        # 'Актуальность строки', 
+        # 'Площадь, км2',
+        # 'Другие документы об объекте (вид документа, №, год, стадия ГРР, авторы, организация)',
+        'Дата регистрации',
+        'Дата'
+        ], axis=1)
+        print(len(df_db))
+        
+        df_db.fillna('', inplace=True)
         db_duplicates = df_db.duplicated(keep=False)
         print(db_duplicates)
         db_dupl_id = df_db.loc[db_duplicates, '_id']
+        print(len(db_dupl_id))
         df = df[~df['_id'].isin(db_dupl_id)]
 
     return df
