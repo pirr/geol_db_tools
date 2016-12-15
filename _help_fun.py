@@ -82,7 +82,7 @@ def read_excel(filename, actual=False):
 
     # TODO validate function
     problems_array = []
-    if '_id' in df.columns:
+    if actual:
         df_new_rows = df[pd.isnull(df['_id'])]
     else:
         df_new_rows = df
