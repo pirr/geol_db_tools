@@ -179,7 +179,6 @@ def download_regist(reg_name, with_revs):
 @app.route('/get_download', methods=['GET', 'POST'])
 def get_download():
     with_revs = request.args.get('withRevs')
-    print(with_revs)
     reg_name = request.args.get('reg_name')
     return redirect(url_for('download_regist', reg_name=reg_name, with_revs=with_revs))
 
