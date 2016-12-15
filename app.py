@@ -15,7 +15,7 @@ import requests
 # from manage import User
 from forms import NewUploadForm, ActualUploadForm
 from werkzeug.utils import secure_filename
-from setup import app, db, couch, cdb
+from setup import app, db, couch, cdb, REGISTRY_COLUMNS
 import numpy as np
 import pandas as pd
 # import xlrd
@@ -70,7 +70,7 @@ def uploads_file(filename, type):
     send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
     if type == 'actual':
-        move(os.path.join(app.config['UPLOAD_FOLDER'], filename), 
+        move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
                     os.path.join(app.config['UPLOAD_FOLDER'], session['reg_name'] + '.xls'))
         filename = session['reg_name'] + '.xls'
 
@@ -156,7 +156,7 @@ def download_regist(reg_name, with_revs):
     output = BytesIO()
     writer = pd.ExcelWriter(output)
 
-    df.to_excel(writer, startrow=2, merge_cells=False,
+    df[REGISTRY_COLUMNS + ['_id', '_rev']].to_excel(writer, startrow=2, merge_cells=False,
                 sheet_name='reestr', index=False)
     writer.close()
     output.seek(0)
