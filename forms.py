@@ -15,10 +15,15 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
-class UploadForm(FlaskForm):
+
+class NewUploadForm(FlaskForm):
     file = FileField('Название файла (только лат.)', validators=[
         FileRequired('Файл не выбран'), FileAllowed(ALLOWED_EXTENSIONS,
         'Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))])
+
+    
+class ActualUploadForm(FlaskForm):
+    file = FileField('Название файла (только лат.)')
     regs_select = SelectField('Реестр для обновления', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
 
     def validate(self):
@@ -37,10 +42,9 @@ class UploadForm(FlaskForm):
             self.file.errors.append('Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))
             return False
         
-        # TODO NEED FIX OR DIFFERENT FORMS!
-        # if reg_name not in ALL_REGS:
-        #     self.regs_select.errors.append('Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
-        #     return False
+        if reg_name not in ALL_REGS:
+            self.regs_select.errors.append('Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
+            return False
         
         self.file.errors = tuple(self.file.errors)
         self.regs_select.errors = tuple(self.regs_select.errors)

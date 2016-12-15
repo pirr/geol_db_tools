@@ -13,7 +13,7 @@ from flask import (request, redirect, url_for,
 import requests
 # from forms import RequestForm, RequestFormIzuch
 # from manage import User
-from forms import UploadForm
+from forms import NewUploadForm, ActualUploadForm
 from werkzeug.utils import secure_filename
 from setup import app, db, couch, cdb
 import numpy as np
@@ -32,7 +32,10 @@ def index():
 
 @app.route('/upload/<type>', methods=['GET', 'POST'])
 def upload_file(type):
-    form = UploadForm()
+    if type == 'actual':
+        form = ActualUploadForm()
+    else:
+        form = NewUploadForm()
     if form.validate_on_submit():
         filename = secure_filename(form.file.data.filename)
         # filename = filename.split('.')
@@ -42,10 +45,10 @@ def upload_file(type):
         # print(filename)
         form.file.data.save(os.path.join(
             app.config['UPLOAD_FOLDER'], filename))
-        
+
         if type == 'actual':
             session['reg_name'] = form.regs_select.data
-        
+
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
     filename = None
@@ -56,10 +59,10 @@ def upload_file(type):
         title = 'Актуализировать реестр'
 
     return render_template('upload_form.html',
-                           form=form,
-                           filename=filename,
-                           type=type,
-                           title=title)
+                           form = form,
+                           filename = filename,
+                           type = type,
+                           title = title)
 
 
 @app.route('/uploads/<filename>-<type>')
