@@ -72,6 +72,7 @@ var downloadDB = function(button) {
 		
 		beforeSend: function() {
 	        $('#loading_'+reg_name).show();
+			$('#loading_'+reg_name).html('Файл формируется')
 	    },
 	   
 		success: function() {
