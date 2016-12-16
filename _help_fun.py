@@ -75,14 +75,15 @@ def read_excel(filename, actual=False):
         print(str(e))
         raise e
 
-    df.columns = [REGISTRY_COLUMNS + ['_id', '_rev']]
-
     # TODO validate function
-    problems_array = []
     if actual:
+        df.columns = [REGISTRY_COLUMNS + ['_id', '_rev']]
         df_new_rows = df[pd.isnull(df['_id'])]
     else:
+        df.columns = [REGISTRY_COLUMNS]
         df_new_rows = df
+
+    problems_array = []
     if not df_new_rows.empty:
         problems_1, valid = check_df(df_new_rows, update=False)
         if not valid:
