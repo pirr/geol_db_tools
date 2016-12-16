@@ -165,7 +165,6 @@ def download_regist(reg_name, with_revs):
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
-
     df[cols].to_excel(writer, startrow=2, merge_cells=False,
                       sheet_name='reestr', index=False)
     writer.close()
