@@ -124,13 +124,7 @@ def read_excel(filename, actual=False):
         docs = mango_query(cdb, **selector)
         df_db = pd.DataFrame(docs)
         df_db = df_db.append(none_duplicates)
-        df_db = df_db[REGISTRY_COLUMNS + ['_id', '_rev']].drop(['№ изменений', 
-        # 'Актуальность строки', 
-        # 'Площадь, км2',
-        # 'Другие документы об объекте (вид документа, №, год, стадия ГРР, авторы, организация)',
-        'Дата регистрации',
-        'Дата'
-        ], axis=1)
+        df_db = df_db[REGISTRY_COLUMNS + ['_id', '_rev']].drop(['№ изменений', 'Актуальность строки'], axis=1)
         print(len(df_db))
         
         df_db.fillna('', inplace=True)
