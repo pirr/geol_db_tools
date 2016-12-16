@@ -132,6 +132,10 @@ def read_excel(filename, actual=False):
         db_dupl_id = df_db.loc[db_duplicates, '_id']
         print(len(db_dupl_id))
         df = df[~df['_id'].isin(db_dupl_id)]
+    
+    if df.empty:
+        flash('Реестр пуст или нет новых строк')
+        raise Exception('Реестр пуст или нет новых строк')
 
     return df
 
