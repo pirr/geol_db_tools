@@ -66,11 +66,8 @@ def read_excel(filename, actual=False):
         flash('''Возникли проблемы на стороне сервера обратитесь к администратору''', category='error')
         raise e
     try:
-        # xls = xlrd.open_workbook(f, on_demand=True)
-        # print(xls.sheet_names())
-        df = pd.read_excel(f, sheetname='reestr', skiprows=2)
-        df['Дата регистрации'] = df['Дата регистрации'].astype(str)
-        df['Дата'] = df['Дата'].astype(str)
+        df = pd.read_excel(f, sheetname='reestr', skiprows=2, 
+        converters={'Дата регистрации':str,'Дата':str, '№ объекта в документе регистрации': str})
     except Exception as e:
         flash('''Проблемы при чтении файла. Возможно в файле {} нет листа reestr'''.format(
             filename), category='error')
