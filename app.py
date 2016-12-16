@@ -59,10 +59,10 @@ def upload_file(type):
         title = 'Актуализировать реестр'
 
     return render_template('upload_form.html',
-                           form = form,
-                           filename = filename,
-                           type = type,
-                           title = title)
+                           form=form,
+                           filename=filename,
+                           type=type,
+                           title=title)
 
 
 @app.route('/uploads/<filename>-<type>')
@@ -71,7 +71,7 @@ def uploads_file(filename, type):
 
     if type == 'actual':
         move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
-                    os.path.join(app.config['UPLOAD_FOLDER'], session['reg_name'] + '.xls'))
+             os.path.join(app.config['UPLOAD_FOLDER'], session['reg_name'] + '.xls'))
         filename = session['reg_name'] + '.xls'
 
     return redirect(url_for('import_file', filename=filename, type=type))
@@ -126,14 +126,11 @@ def import_file(filename, type):
             regs_info[reg_name]['modified'] = t
 
         cdb['regs_info'] = regs_info
-        # print('RES:', res)
 
     else:
         raise Exception('Реестр пуст или нет новых строк')
     # except Exception as e:
     #     return redirect(url_for('upload_file', type=type))
-
-    
 
     return redirect(url_for('regs_list'))
 
@@ -181,14 +178,6 @@ def get_download():
     with_revs = request.args.get('withRevs')
     reg_name = request.args.get('reg_name')
     return redirect(url_for('download_regist', reg_name=reg_name, with_revs=with_revs))
-
-
-# @app.route('/clear_session', methods=['GET', 'POST'])
-# def clear_session():
-#     param = request.args.get('param')
-#     if param in session:
-#         del session[param]
-#     return 'session {} clear'.format(param)
 
 
 @app.route('/regs')
