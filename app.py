@@ -137,28 +137,37 @@ def download_regist(reg_name, with_revs):
     df = pd.DataFrame(docs)
 
     if with_revs == 'yes':
+        cols = REGISTRY_COLUMNS
 
-        df_revs = df.loc[~pd.isnull(df['№ изменений']), '_id']
+        df_revs = df.loc[(df['№ изменений'] != '') & (
+            df['Операция внесения (добавление, изменение, удаление)'] != 'удаление'), '_id']
 
         if not df_revs.empty:
             print('revs!')
-            
+
             for _id in df_revs:
                 for i, rev in enumerate(cdb.revisions(_id)):
                     if i:
-                        ref_dv = pd.DataFrame({k: v for k, v in rev.items()}, index=[0])
-                        df = df.append(ref_dv, ignore_index=True)
-        df_deleted = df.loc[df['Операция внесения (добавление, изменение, удаление)'] == 'удаление', '_id']
-        df.loc[df['_id'].isin(df_deleted), 'Актуальность строки'] = ''
-    
+                        df_rev = pd.DataFrame(
+                            {k: v for k, v in rev.items()}, index=[0])
+                        df = df.append(df_rev, ignore_index=True)
+
+    else:
+        cols = REGISTRY_COLUMNS + ['_id', '_rev']
+
+    df_deleted = df.loc[
+        df['Операция внесения (добавление, изменение, удаление)'] == 'удаление', '_id']
+    df.loc[df['_id'].isin(df_deleted), 'Актуальность строки'] = ''
+
     df['rev_num'] = df['_rev'].str.split('-').str.get(0)
-    df['№ изменений'] = df['rev_num'].apply(lambda x: int(x) - 1 if int(x) > 1 else np.nan)
+    df['№ изменений'] = df['rev_num'].apply(
+        lambda x: int(x) - 1 if int(x) > 1 else np.nan)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
 
-    df[REGISTRY_COLUMNS + ['_id', '_rev']].to_excel(writer, startrow=2, merge_cells=False,
-                sheet_name='reestr', index=False)
+    df[cols].to_excel(writer, startrow=2, merge_cells=False,
+                      sheet_name='reestr', index=False)
     writer.close()
     output.seek(0)
 
