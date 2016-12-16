@@ -79,58 +79,53 @@ def uploads_file(filename, type):
 
 @app.route('/import/<filename>-<type>')
 def import_file(filename, type):
-    # try:
+    try:
 
-    if type == 'actual':
-        actual = True
-    else:
-        actual = False
-
-    data = read_excel(filename, actual=actual)
-    
-    dfs = []
-    
-
-    if actual:
-        df_new_rows = data[pd.isnull(data['_id'])]
-        df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
-        if not df_new_rows.empty:
-            dfs.append(df_new_rows)
-        df_updated_rows = data[~pd.isnull(data['_id'])]
-        
-        if not df_updated_rows.empty:
-            # df_updated_rows['№ изменений'] = df_updated_rows['_rev'].str.split('-').str.get(0)
-            dfs.append(df_updated_rows)
-    else:
-        dfs.append(data)
-    
-    if dfs:
-        for df in dfs:
-            try:
-                df.fillna('', inplace=True)
-                df.replace('nan', '', inplace=True)
-                data_dict = df.to_dict(orient='records')
-                # data_dict = json.loads(data_json)
-                res = cdb.update(data_dict)
-            except Exception as e:
-                raise e
-
-        regs_info = cdb['regs_info']
-        reg_name = filename.split('.')[0]
-        t = datetime.now().strftime("%Y-%m-%d_%H-%M")
-
-        if type == 'new':
-            regs_info[reg_name] = {'created': t,
-                                   'modified': t}
+        if type == 'actual':
+            actual = True
         else:
-            regs_info[reg_name]['modified'] = t
+            actual = False
 
-        cdb['regs_info'] = regs_info
+        data = read_excel(filename, actual=actual)
 
-    else:
-        raise Exception('Реестр пуст или нет новых строк')
-    # except Exception as e:
-    #     return redirect(url_for('upload_file', type=type))
+        dfs = []
+
+        if actual:
+            df_new_rows = data[pd.isnull(data['_id'])]
+            df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
+            if not df_new_rows.empty:
+                dfs.append(df_new_rows)
+            df_updated_rows = data[~pd.isnull(data['_id'])]
+
+            if not df_updated_rows.empty:
+                dfs.append(df_updated_rows)
+        else:
+            dfs.append(data)
+
+        if dfs:
+            for df in dfs:
+                try:
+                    df.fillna('', inplace=True)
+                    df.replace('nan', '', inplace=True)
+                    data_dict = df.to_dict(orient='records')
+                    res = cdb.update(data_dict)
+                except Exception as e:
+                    raise e
+
+            regs_info = cdb['regs_info']
+            reg_name = filename.split('.')[0]
+            t = datetime.now().strftime("%Y-%m-%d_%H-%M")
+
+            if type == 'new':
+                regs_info[reg_name] = {'created': t,
+                                       'modified': t}
+            else:
+                regs_info[reg_name]['modified'] = t
+
+            cdb['regs_info'] = regs_info
+
+    except Exception as e:
+        return redirect(url_for('upload_file', type=type))
 
     return redirect(url_for('regs_list'))
 
