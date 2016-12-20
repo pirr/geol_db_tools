@@ -3,7 +3,7 @@
 import os
 from flask import session
 from flask_wtf import FlaskForm
-from wtforms import SelectField
+from wtforms import SelectField, StringField
 from flask_wtf.file import FileField, FileAllowed, FileRequired
 from setup import app, cdb
 
@@ -17,9 +17,37 @@ def allowed_file(filename):
 
 
 class NewUploadForm(FlaskForm):
-    file = FileField('Название файла (только лат.)', validators=[
-        FileRequired('Файл не выбран'), FileAllowed(ALLOWED_EXTENSIONS,
-        'Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))])
+    file = FileField('Название файла (только лат.)')
+    reg_name = StringField('Название реестра')
+
+    def validate(self):
+        filename = self.file.data.filename
+        reg_name = self.reg_name.data
+        self.file.errors = list(self.file.errors)
+        self.reg_name.errors = list(self.reg_name.errors)
+        # if filename in os.listdir(app.config['UPLOAD_FOLDER']):
+        #     self.file.errors.append('Файл с таким именем уже существует')
+        #     return False
+        if filename.strip() == '':
+            self.file.errors.append('Файл не выбран')
+            return False
+        
+        if reg_name.strip() == '':
+            self.reg_name.errors.appens('Введите название реестра')
+            return False
+
+        if not allowed_file(filename):
+            self.file.errors.append('Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))
+            return False
+        
+        if reg_name in ALL_REGS:
+            self.reg_name.errors.append('{} - такой реестр уже существует'.format(reg_name))
+            return False
+        
+        self.file.errors = tuple(self.file.errors)
+        self.reg_name.errors = tuple(self.reg_name.errors)
+
+        return True
 
     
 class ActualUploadForm(FlaskForm):
