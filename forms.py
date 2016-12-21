@@ -52,7 +52,7 @@ class NewUploadForm(FlaskForm):
     
 class ActualUploadForm(FlaskForm):
     file = FileField('Выберите файл (только лат.)')
-    regs_select = SelectField('Выберите реестр для обновления', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
+    regs_select = SelectField('Выберите реестр для актуализации', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
 
     def validate(self):
         filename = self.file.data.filename
