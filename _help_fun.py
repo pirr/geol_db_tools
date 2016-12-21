@@ -66,15 +66,20 @@ def read_excel(filename, actual=False):
         flash('''Возникли проблемы на стороне сервера обратитесь к администратору''', category='error')
         raise e
     try:
-        df = pd.read_excel(f, sheetname='reestr', skiprows=2, 
-        converters={'Дата регистрации':str,'Дата':str, '№ объекта в документе регистрации': str})
+        df = pd.read_excel(f, sheetname='reestr', skiprows=2,
+                           converters={'Дата регистрации': str, 'Дата': str, '№ объекта в документе регистрации': str})
     except Exception as e:
         flash('''Проблемы при чтении файла. Возможно в файле {} нет листа reestr'''.format(
             filename), category='error')
         os.remove(f)
         print(str(e))
         raise e
-
+    for col in REGISTRY_COLUMNS:
+        none_cols = [c for c in REGISTRY_COLUMNS if c not in df.columns]
+        if none_cols:
+            flash('''В реестры отсутствуют колонки:{}'''.format(
+                ', '.join(none_cols)))
+            raise e
     # TODO validate function
     if actual:
         df.columns = [REGISTRY_COLUMNS + ['_id', '_rev']]
@@ -124,15 +129,16 @@ def read_excel(filename, actual=False):
         docs = mango_query(cdb, **selector)
         df_db = pd.DataFrame(docs)
         df_db = df_db.append(none_duplicates)
-        df_db = df_db[REGISTRY_COLUMNS + ['_id', '_rev']].drop(['№ изменений', 'Актуальность строки'], axis=1)
+        df_db = df_db[REGISTRY_COLUMNS + ['_id', '_rev']
+                      ].drop(['№ изменений', 'Актуальность строки'], axis=1)
         print(len(df_db))
-        
+
         df_db.fillna('', inplace=True)
         db_duplicates = df_db.duplicated(keep=False)
         db_dupl_id = df_db.loc[db_duplicates, '_id']
         print(len(db_dupl_id))
         df = df[~df['_id'].isin(db_dupl_id)]
-    
+
     if df.empty:
         flash('Реестр пуст или нет новых строк')
         raise Exception('Реестр пуст или нет новых строк')
