@@ -17,8 +17,8 @@ def allowed_file(filename):
 
 
 class NewUploadForm(FlaskForm):
-    file = FileField('Название файла (только лат.)')
-    reg_name = StringField('Название реестра')
+    file = FileField('Выберите файл (только лат.)')
+    reg_name = StringField('Введите название реестра')
 
     def validate(self):
         filename = self.file.data.filename
@@ -51,8 +51,8 @@ class NewUploadForm(FlaskForm):
 
     
 class ActualUploadForm(FlaskForm):
-    file = FileField('Название файла (только лат.)')
-    regs_select = SelectField('Реестр для обновления', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
+    file = FileField('Выберите файл (только лат.)')
+    regs_select = SelectField('Выберите реестр для обновления', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
 
     def validate(self):
         filename = self.file.data.filename
