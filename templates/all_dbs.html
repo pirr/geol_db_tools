@@ -9,9 +9,9 @@
 <!-- <form action="/download/{{db}}" method="GET">
 	<input type="submit" value="Скачать {{db}}" class="btn btn-link"/>
 </form> -->
-<button id="{{db}}" class="btn btn-link" onclick="return(downloadDB(this))">Скачать {{ db }}</button>
+<button id="{{db[0]}}" class="btn btn-link" onclick="return(downloadDB(this))">Скачать {{ db[1] }}</button>
 <!--<div id="progressCounter_{{db}}"></div><br>-->
-<div id="loading_{{db}}" hidden="true"></div><br>
+<div id="loading_{{db[0]}}" hidden="true"></div><br>
 
 {% endfor %}
 

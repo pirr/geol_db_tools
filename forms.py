@@ -11,6 +11,7 @@ from setup import app, cdb
 ALLOWED_EXTENSIONS = ['xls', 'xlsx']
 ALL_REGS = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
 
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
@@ -31,28 +32,31 @@ class NewUploadForm(FlaskForm):
         if filename.strip() == '':
             self.file.errors.append('Файл не выбран')
             return False
-        
+
         if reg_name.strip() == '':
             self.reg_name.errors.appens('Введите название реестра')
             return False
 
         if not allowed_file(filename):
-            self.file.errors.append('Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))
+            self.file.errors.append('Только {} файлы'.format(
+                ', '.join(ALLOWED_EXTENSIONS)))
             return False
-        
+
         if reg_name in ALL_REGS:
-            self.reg_name.errors.append('{} - такой реестр уже существует'.format(reg_name))
+            self.reg_name.errors.append(
+                '{} - такой реестр уже существует'.format(reg_name))
             return False
-        
+
         self.file.errors = tuple(self.file.errors)
         self.reg_name.errors = tuple(self.reg_name.errors)
 
         return True
 
-    
+
 class ActualUploadForm(FlaskForm):
     file = FileField('Выберите файл (только лат.)')
-    regs_select = SelectField('Выберите реестр для актуализации', choices=[('', '---')] + [(reg, reg) for reg in ALL_REGS])
+    regs_select = SelectField('Выберите реестр для актуализации', choices=[(
+        '', '---')] + [(reg, cdb['regs_info'][reg]['reg_name']) for reg in ALL_REGS])
 
     def validate(self):
         filename = self.file.data.filename
@@ -67,13 +71,15 @@ class ActualUploadForm(FlaskForm):
             return False
 
         if not allowed_file(filename):
-            self.file.errors.append('Только {} файлы'.format(', '.join(ALLOWED_EXTENSIONS)))
+            self.file.errors.append('Только {} файлы'.format(
+                ', '.join(ALLOWED_EXTENSIONS)))
             return False
-        
+
         if reg_name not in ALL_REGS:
-            self.regs_select.errors.append('Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
+            self.regs_select.errors.append(
+                'Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
             return False
-        
+
         self.file.errors = tuple(self.file.errors)
         self.regs_select.errors = tuple(self.regs_select.errors)
 

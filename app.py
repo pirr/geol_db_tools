@@ -185,7 +185,12 @@ def get_download():
 
 @app.route('/regs')
 def regs_list():
-    all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
+    regs_info = cdb['regs_info']
+    all_regs = []
+    for reg_file in regs_info:
+        if 'reg_name' in regs_info[reg_file]:
+            all_regs.append((reg_file, regs_info[reg_file]['reg_name']))
+    # all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
 
     return render_template('all_dbs.html', dbs=all_regs)
 
