@@ -46,8 +46,12 @@ def upload_file(type):
         form.file.data.save(os.path.join(
             app.config['UPLOAD_FOLDER'], filename))
 
-        if type == 'actual':
-            session['reg_name'] = form.regs_select.data
+        # if type == 'actual':
+        #     session['reg_name'] = form.regs_select.data
+        # else:
+        #     session['reg_name'] = form.reg_name.data
+        if type == 'new':
+            session['reg_name'] = form.reg_name.data
 
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
@@ -71,9 +75,9 @@ def uploads_file(filename, type):
 
     if type == 'actual':
         move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
-             os.path.join(app.config['UPLOAD_FOLDER'], session['reg_name'] + '.xls'))
-        filename = session['reg_name'] + '.xls'
-
+             os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # filename = session['reg_name'] + '.xls'
+    
     return redirect(url_for('import_file', filename=filename, type=type))
 
 
@@ -85,8 +89,9 @@ def import_file(filename, type):
             actual = True
         else:
             actual = False
-
+        
         data = read_excel(filename, actual=actual)
+        
 
         dfs = []
 
@@ -113,14 +118,15 @@ def import_file(filename, type):
                     raise e
 
             regs_info = cdb['regs_info']
-            reg_name = filename.split('.')[0]
+            reg_file = filename.split('.')[0]
             t = datetime.now().strftime("%Y-%m-%d_%H-%M")
 
             if type == 'new':
-                regs_info[reg_name] = {'created': t,
-                                       'modified': t}
+                regs_info[reg_file] = {'created': t,
+                                       'modified': t,
+                                       'reg_name': session['reg_name']}
             else:
-                regs_info[reg_name]['modified'] = t
+                regs_info[reg_file]['modified'] = t
 
             cdb['regs_info'] = regs_info
 
@@ -130,9 +136,9 @@ def import_file(filename, type):
     return redirect(url_for('regs_list'))
 
 
-@app.route('/download/<reg_name>-<with_revs>', methods=['GET', 'POST'])
-def download_regist(reg_name, with_revs):
-    selector = {'filename': {'$eq': reg_name}}
+@app.route('/download/<reg_file>-<with_revs>', methods=['GET', 'POST'])
+def download_regist(reg_file, with_revs):
+    selector = {'filename': {'$eq': reg_file}}
     docs = mango_query(cdb, **selector)
     df = pd.DataFrame(docs)
 
@@ -171,7 +177,7 @@ def download_regist(reg_name, with_revs):
     output.seek(0)
 
     return send_file(output,
-                     attachment_filename="{}.xls".format(reg_name),
+                     attachment_filename="{}.xls".format(reg_file),
                      as_attachment=True
                      )
 
@@ -179,8 +185,8 @@ def download_regist(reg_name, with_revs):
 @app.route('/get_download', methods=['GET', 'POST'])
 def get_download():
     with_revs = request.args.get('withRevs')
-    reg_name = request.args.get('reg_name')
-    return redirect(url_for('download_regist', reg_name=reg_name, with_revs=with_revs))
+    reg_file = request.args.get('reg_name')
+    return redirect(url_for('download_regist', reg_file=reg_file, with_revs=with_revs))
 
 
 @app.route('/regs')

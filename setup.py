@@ -38,9 +38,9 @@ REGISTRY_COLUMNS = ['№ строки', 'Актуальность строки',
 
 
 try:
-    cdb = couch['test_db_io']
+    cdb = couch['test_2112']
 except Exception as e:
-    cdb = couch.create('test_db_io')
+    cdb = couch.create('test_2112')
 
 if 'regs_info' not in cdb:
     cdb.save({'_id': 'regs_info'})

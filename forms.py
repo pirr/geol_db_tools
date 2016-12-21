@@ -86,8 +86,6 @@ class ActualUploadForm(FlaskForm):
         return True
 
 
-
-
 # class RequestFormIzuch(FlaskForm):
 #     authors_filter = StringField('Авторы документа')
 #     text = StringField('Текст')
