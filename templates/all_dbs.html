@@ -9,10 +9,24 @@
 <!-- <form action="/download/{{db}}" method="GET">
 	<input type="submit" value="Скачать {{db}}" class="btn btn-link"/>
 </form> -->
-<button id="{{db[0]}}" class="btn btn-link" onclick="return(downloadDB(this))">Скачать {{ db[1] }}</button>
-<!--<div id="progressCounter_{{db}}"></div><br>-->
-<div id="loading_{{db[0]}}" hidden="true"></div><br>
-
+<table class="table table-striped">
+	<thead>
+		<tr>
+			<th>Реестр</th>
+			<th>Создан</th>
+			<th>Изменен</th>
+			<th></th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td><button id="{{db[0]}}" class="btn btn-link" onclick="return(downloadDB(this))">Скачать {{ db[1].reg_name }}</button></td>
+			<td>{{db[1].created}}</td>
+			<td>{{db[1].modified}}</td>
+			<td><div id="loading_{{db[0]}}" hidden="true"></div><br></td>
+		</tr>
+	</tbody>
+</table>
 {% endfor %}
 
 {% endblock %}
