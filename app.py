@@ -15,7 +15,7 @@ import requests
 # from manage import User
 from forms import NewUploadForm, ActualUploadForm
 from werkzeug.utils import secure_filename
-from setup import app, db, couch, cdb, REGISTRY_COLUMNS
+from setup import app, db, couch, cdb, _REGISTRY_COLUMNS
 import numpy as np
 import pandas as pd
 # import xlrd
@@ -52,6 +52,8 @@ def upload_file(type):
         #     session['reg_name'] = form.reg_name.data
         if type == 'new':
             session['reg_name'] = form.reg_name.data
+        else:
+            session['id_reg'] = form.regs_select.data
 
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
@@ -77,25 +79,20 @@ def uploads_file(filename, type):
         move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
              os.path.join(app.config['UPLOAD_FOLDER'], filename))
         # filename = session['reg_name'] + '.xls'
-    
+
     return redirect(url_for('import_file', filename=filename, type=type))
 
 
 @app.route('/import/<filename>-<type>')
 def import_file(filename, type):
     try:
-
-        if type == 'actual':
-            actual = True
-        else:
-            actual = False
-        
-        data = read_excel(filename, actual=actual)
-        
-
+        regs_info = cdb['regs_info']
+        t = datetime.now().strftime("%Y-%m-%d_%H-%M")
         dfs = []
 
-        if actual:
+        if type == 'actual':
+            data = read_excel(filename, actual=True)
+            
             df_new_rows = data[pd.isnull(data['_id'])]
             df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
             if not df_new_rows.empty:
@@ -104,49 +101,57 @@ def import_file(filename, type):
 
             if not df_updated_rows.empty:
                 dfs.append(df_updated_rows)
+            id_reg = session['id_reg']
+            regs_info[id_reg]['modified'] = t
+
         else:
+            data = read_excel(filename, actual=False)
             dfs.append(data)
+            reg_ids = [int(id) for id in list(regs_info) if id not in ('_id', '_rev')]
+            if reg_ids:
+                id_reg = str(max(reg_ids) + 1)
+            else:
+                id_reg = '1'
+            regs_info[id_reg] = {'created': t,
+                                 'modified': '',
+                                 'reg_name': session['reg_name']}
 
         if dfs:
             for df in dfs:
                 try:
                     df.fillna('', inplace=True)
+                    df['id_reg'] = id_reg
                     df.replace('nan', '', inplace=True)
                     data_dict = df.to_dict(orient='records')
                     res = cdb.update(data_dict)
                 except Exception as e:
                     raise e
 
-            regs_info = cdb['regs_info']
-            reg_file = filename.split('.')[0]
-            t = datetime.now().strftime("%Y-%m-%d_%H-%M")
-
-            if type == 'new':
-                regs_info[reg_file] = {'created': t,
-                                       'modified': t,
-                                       'reg_name': session['reg_name']}
-            else:
-                regs_info[reg_file]['modified'] = t
+            # id_reg = filename.split('.')[0]
 
             cdb['regs_info'] = regs_info
 
     except Exception as e:
-        return redirect(url_for('upload_file', type=type))
+        # os.remove(filename)
+        # return redirect(url_for('upload_file', type=type))
+        raise e
 
     return redirect(url_for('regs_list'))
 
 
-@app.route('/download/<reg_file>-<with_revs>', methods=['GET', 'POST'])
-def download_regist(reg_file, with_revs):
-    selector = {'filename': {'$eq': reg_file}}
+@app.route('/download/<id_reg>-<with_revs>', methods=['GET', 'POST'])
+def download_regist(id_reg, with_revs):
+    selector = {'id_reg': {'$eq': id_reg}}
     docs = mango_query(cdb, **selector)
+    # db_cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev']
     df = pd.DataFrame(docs)
+    print(len(df))
 
     if with_revs == 'yes':
-        cols = REGISTRY_COLUMNS
+        cols = list(_REGISTRY_COLUMNS.keys())
 
-        df_revs = df.loc[(df['№ изменений'] != '') & (
-            df['Операция внесения (добавление, изменение, удаление)'] != 'удаление'), '_id']
+        df_revs = df.loc[(df['N_change'] != '') & (
+            df['change_type'] != 'удаление'), '_id']
 
         if not df_revs.empty:
             print('revs!')
@@ -159,25 +164,30 @@ def download_regist(reg_file, with_revs):
                         df = df.append(df_rev, ignore_index=True)
 
     else:
-        cols = REGISTRY_COLUMNS + ['_id', '_rev']
+        cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev', 'id_reg', 'filename']
 
     df_deleted = df.loc[
-        df['Операция внесения (добавление, изменение, удаление)'] == 'удаление', '_id']
-    df.loc[df['_id'].isin(df_deleted), 'Актуальность строки'] = ''
+        df['change_type'] == 'удаление', '_id']
+    df.loc[df['_id'].isin(df_deleted), 'actual'] = ''
 
     df['rev_num'] = df['_rev'].str.split('-').str.get(0)
-    df['№ изменений'] = df['rev_num'].apply(
+    df['N_change'] = df['rev_num'].apply(
         lambda x: int(x) - 1 if int(x) > 1 else np.nan)
+    df.drop('rev_num', axis=1, inplace=True)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
-    df[cols].to_excel(writer, startrow=2, merge_cells=False,
-                      sheet_name='reestr', index=False)
+
+    df = df[cols]
+    df.columns = [c if c in ('_id', '_rev', 'id_reg', 'filename') else _REGISTRY_COLUMNS[
+        c] for c in cols]
+    df.to_excel(writer, startrow=2, merge_cells=False,
+                sheet_name='reestr', index=False)
     writer.close()
     output.seek(0)
 
     return send_file(output,
-                     attachment_filename="{}.xls".format(reg_file),
+                     attachment_filename="{}.xls".format('reestr_'+id_reg),
                      as_attachment=True
                      )
 
@@ -185,17 +195,17 @@ def download_regist(reg_file, with_revs):
 @app.route('/get_download', methods=['GET', 'POST'])
 def get_download():
     with_revs = request.args.get('withRevs')
-    reg_file = request.args.get('reg_name')
-    return redirect(url_for('download_regist', reg_file=reg_file, with_revs=with_revs))
+    id_reg = request.args.get('reg_name')
+    return redirect(url_for('download_regist', id_reg=id_reg, with_revs=with_revs))
 
 
 @app.route('/regs')
 def regs_list():
     regs_info = cdb['regs_info']
     all_regs = []
-    for reg_file in regs_info:
-        if 'reg_name' in regs_info[reg_file]:
-            all_regs.append((reg_file, regs_info[reg_file]))
+    for id_reg in regs_info:
+        if id_reg not in ('_id', '_rev'):
+            all_regs.append((id_reg, regs_info[id_reg]))
     # all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
 
     return render_template('all_dbs.html', dbs=all_regs)

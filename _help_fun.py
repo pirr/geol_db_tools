@@ -1,9 +1,10 @@
 import os
+import re
 import numpy as np
 import pandas as pd
 
 from setup import app, REGISTRY_COLUMNS
-from flask import flash
+from flask import flash, session
 
 from setup import cdb
 from views import mango_query
@@ -15,11 +16,11 @@ def check_df(df, update=False):
     sub = False
 
     if update:
-        valid_cols = set(['Актуальность строки', '№ строки', '_id', '_rev'])
-        sub = ['Актуальность строки', '_id']
+        valid_cols = set(['actual', 'N', '_id', '_rev', 'id_reg', 'filename'])
+        sub = ['actual', '_id']
 
     else:
-        valid_cols = set(['Актуальность строки', '№ строки'])
+        valid_cols = set(['actual', 'N'])
 
     if valid_cols & set(df.columns) != valid_cols:
         problems_dict['Нет необходимых колонок'] = list(
@@ -30,7 +31,7 @@ def check_df(df, update=False):
         duplicates = df[sub].duplicated(keep=False)
         if not df[duplicates].empty:
             problems_dict['Дубликаты актуальных строк'] = df[duplicates].groupby(sub)[
-                '№ строки'].apply(list).tolist()
+                'N'].apply(list).tolist()
 
     if problems_dict:
         valid = False
@@ -74,18 +75,25 @@ def read_excel(filename, actual=False):
         os.remove(f)
         print(str(e))
         raise e
-    for col in REGISTRY_COLUMNS:
-        none_cols = [c for c in REGISTRY_COLUMNS if c not in df.columns]
-        if none_cols:
-            flash('''В реестры отсутствуют колонки:{}'''.format(
-                ', '.join(none_cols)))
-            raise e
+
     # TODO validate function
+
+    # check columns
+    pattern = re.compile(r'\s+')
+    df.columns = [pattern.sub(' ', c.strip()) for c in df.columns]
+    none_cols = [c for c in REGISTRY_COLUMNS.keys() if c not in df.columns]
+    if none_cols:
+        flash('''В реестры отсутствуют колонки:{}'''.format(
+            ', '.join(none_cols)))
+        raise Exception('Invalid registry file')
+
+    else:
+        df.columns = [c if c in ('_id', '_rev', 'id_reg', 'filename') else REGISTRY_COLUMNS[
+            c] for c in df.columns]
+
     if actual:
-        df.columns = [REGISTRY_COLUMNS + ['_id', '_rev']]
         df_new_rows = df[pd.isnull(df['_id'])]
     else:
-        df.columns = [REGISTRY_COLUMNS]
         df_new_rows = df
 
     problems_array = []
@@ -115,9 +123,7 @@ def read_excel(filename, actual=False):
         os.remove(f)
         raise Exception('Invalid registry file')
 
-    df = former_df(df, ['Актуальность строки',
-                        'Операция внесения (добавление, изменение, удаление)'])
-    df['filename'] = filename.split('.')[0]
+    df = former_df(df, ['actual', 'change_type'])
 
     # TODO function
     if actual:
@@ -125,12 +131,11 @@ def read_excel(filename, actual=False):
         none_duplicates = df[~duplicates]
         print(len(none_duplicates))
 
-        selector = {'filename': {'$eq': filename.split('.')[0]}}
+        selector = {'filename': {'$eq': session['reg_id']}}
         docs = mango_query(cdb, **selector)
         df_db = pd.DataFrame(docs)
         df_db = df_db.append(none_duplicates)
-        df_db = df_db[REGISTRY_COLUMNS + ['_id', '_rev']
-                      ].drop(['№ изменений', 'Актуальность строки'], axis=1)
+        df_db = df_db.drop(['N_change', 'actual'], axis=1)
         print(len(df_db))
 
         df_db.fillna('', inplace=True)
@@ -142,5 +147,7 @@ def read_excel(filename, actual=False):
     if df.empty:
         flash('Реестр пуст или нет новых строк')
         raise Exception('Реестр пуст или нет новых строк')
+
+    df['filename'] = filename.split('.')[0]
 
     return df
