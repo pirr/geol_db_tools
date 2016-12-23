@@ -37,18 +37,9 @@ def upload_file(type):
         form = forms.NewUploadForm()
     if form.validate_on_submit():
         filename = secure_filename(form.file.data.filename)
-        # filename = filename.split('.')
-        # filename = ''.join(filename[:-1])\
-        #     + '_' + datetime.now().strftime("%Y-%m-%d_%H-%M")\
-        #     + '.' + filename[-1]
-        # print(filename)
         form.file.data.save(os.path.join(
             app.config['UPLOAD_FOLDER'], filename))
 
-        # if type == 'actual':
-        #     session['reg_name'] = form.regs_select.data
-        # else:
-        #     session['reg_name'] = form.reg_name.data
         if type == 'new':
             session['reg_name'] = form.reg_name.data
         else:
@@ -125,8 +116,6 @@ def import_file(filename, type):
                     res = cdb.update(data_dict)
                 except Exception as e:
                     raise e
-
-            # id_reg = filename.split('.')[0]
 
             cdb['regs_info'] = regs_info
 
