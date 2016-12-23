@@ -125,6 +125,10 @@ def read_excel(filename, actual=False):
 
     df = former_df(df, ['actual', 'change_type'])
 
+    for col in df.columns:
+        if df[col].dtype == np.float64:
+            df[col] = np.round(df[col], 8)
+
     # TODO function
     if actual:
         duplicates = df['_id'].duplicated(keep=False)
