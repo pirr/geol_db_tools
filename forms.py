@@ -1,12 +1,11 @@
 #-*- coding: utf-8 -*-
 
-import os
-from flask import session
-from flask_wtf import FlaskForm
-from wtforms import SelectField, StringField
-from flask_wtf.file import FileField, FileAllowed, FileRequired
-from setup import app, cdb
 
+from flask_wtf import FlaskForm
+from flask_wtf.file import FileField
+from wtforms import SelectField, StringField
+
+from setup import cdb
 
 ALLOWED_EXTENSIONS = ['xls', 'xlsx']
 # all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]

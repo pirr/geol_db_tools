@@ -1,28 +1,25 @@
 #-*- coding: utf-8 -*-
 
 
+import importlib as imp
 import os
-import json
-import imp
+from datetime import datetime
+from io import BytesIO
 from shutil import move
 
-from io import BytesIO
-from datetime import datetime
-from flask import (request, redirect, url_for,
-                   render_template, send_from_directory,
-                   session, send_file, session)
-import requests
-# from forms import RequestForm, RequestFormIzuch
-# from manage import User
-import forms
-from werkzeug.utils import secure_filename
-from setup import app, db, couch, cdb, _REGISTRY_COLUMNS
 import numpy as np
 import pandas as pd
-# import xlrd
+from flask import (request, redirect, url_for,
+                   render_template, send_from_directory,
+                   send_file, session)
+from werkzeug.utils import secure_filename
 
-from views import mango_query
+import forms
 from _help_fun import read_excel
+from setup import app, cdb, _REGISTRY_COLUMNS
+from views import mango_query
+
+
 # from logger import log_to_file
 
 
