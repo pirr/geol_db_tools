@@ -3,6 +3,7 @@
 
 import os
 import json
+import imp
 from shutil import move
 
 from io import BytesIO
@@ -13,7 +14,7 @@ from flask import (request, redirect, url_for,
 import requests
 # from forms import RequestForm, RequestFormIzuch
 # from manage import User
-from forms import NewUploadForm, ActualUploadForm
+import forms
 from werkzeug.utils import secure_filename
 from setup import app, db, couch, cdb, _REGISTRY_COLUMNS
 import numpy as np
@@ -32,10 +33,11 @@ def index():
 
 @app.route('/upload/<type>', methods=['GET', 'POST'])
 def upload_file(type):
+    imp.reload(forms)
     if type == 'actual':
-        form = ActualUploadForm()
+        form = forms.ActualUploadForm()
     else:
-        form = NewUploadForm()
+        form = forms.NewUploadForm()
     if form.validate_on_submit():
         filename = secure_filename(form.file.data.filename)
         # filename = filename.split('.')

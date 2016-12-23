@@ -9,17 +9,21 @@ from setup import app, cdb
 
 
 ALLOWED_EXTENSIONS = ['xls', 'xlsx']
-ALL_REGS = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
+# all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
 
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
+def all_regs(regs_info='regs_info'):
+    return [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
+
 
 class NewUploadForm(FlaskForm):
     file = FileField('Выберите файл (только лат.)')
     reg_name = StringField('Введите название реестра')
+    all_regs = all_regs()
 
     def validate(self):
         filename = self.file.data.filename
@@ -42,7 +46,7 @@ class NewUploadForm(FlaskForm):
                 ', '.join(ALLOWED_EXTENSIONS)))
             return False
 
-        if reg_name in ALL_REGS:
+        if reg_name in self.all_regs:
             self.reg_name.errors.append(
                 '{} - такой реестр уже существует'.format(reg_name))
             return False
@@ -55,8 +59,9 @@ class NewUploadForm(FlaskForm):
 
 class ActualUploadForm(FlaskForm):
     file = FileField('Выберите файл (только лат.)')
+    all_regs = all_regs()
     regs_select = SelectField('Выберите реестр для актуализации', choices=[(
-        '', '---')] + [(reg, cdb['regs_info'][reg]['reg_name']) for reg in ALL_REGS])
+        '', '---')] + [(reg, cdb['regs_info'][reg]['reg_name']) for reg in all_regs])
 
     def validate(self):
         filename = self.file.data.filename
@@ -75,7 +80,7 @@ class ActualUploadForm(FlaskForm):
                 ', '.join(ALLOWED_EXTENSIONS)))
             return False
 
-        if reg_name not in ALL_REGS:
+        if reg_name not in self.all_regs:
             self.regs_select.errors.append(
                 'Выберите реестр для обновления из выпадающего списка.'.format(reg_name))
             return False
