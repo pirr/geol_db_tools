@@ -135,11 +135,11 @@ def read_excel(filename, actual=False):
         none_duplicates = df[~duplicates]
         print(len(none_duplicates))
 
-        selector = {'filename': {'$eq': session['reg_id']}}
+        selector = {'id_reg': {'$eq': session['id_reg']}}
         docs = mango_query(cdb, **selector)
         df_db = pd.DataFrame(docs)
         df_db = df_db.append(none_duplicates)
-        df_db = df_db.drop(['N_change', 'actual'], axis=1)
+        df_db = df_db.drop(['N_change', 'actual', 'id_reg'], axis=1)
         print(len(df_db))
 
         df_db.fillna('', inplace=True)
@@ -147,6 +147,7 @@ def read_excel(filename, actual=False):
         db_dupl_id = df_db.loc[db_duplicates, '_id']
         print(len(db_dupl_id))
         df = df[~df['_id'].isin(db_dupl_id)]
+        df['id_reg'] = session['id_reg']
 
     if df.empty:
         flash('Реестр пуст или нет новых строк')
