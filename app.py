@@ -152,7 +152,7 @@ def download_regist(id_reg, with_revs):
     if with_revs == 'yes':
         cols = list(_REGISTRY_COLUMNS.keys())
 
-        df_revs = df.loc[(df['N_change'] != '') & (
+        df_revs = df.loc[(df['N_change'].astype(str) != '') & (
             df['change_type'] != 'удаление'), '_id']
 
         if not df_revs.empty:
@@ -173,7 +173,8 @@ def download_regist(id_reg, with_revs):
     df.loc[df['_id'].isin(df_deleted), 'actual'] = ''
 
     df['rev_num'] = df['_rev'].str.split('-').str.get(0)
-    df['N_change'] = df['rev_num'].apply(
+    df.at[df['change_type'] == 'добавление', 'N_change'] = 1
+    df.at[df['change_type'] != 'добавление', 'N_change'] = df['rev_num'].apply(
         lambda x: int(x) - 1 if int(x) > 1 else np.nan)
     df.drop('rev_num', axis=1, inplace=True)
 
