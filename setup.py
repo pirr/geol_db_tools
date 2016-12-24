@@ -2,12 +2,17 @@
 
 
 from collections import OrderedDict
+import os
 import couchdb
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 
-UPLOAD_FOLDER = 'd:\\Smaga\\bitbucket\\geol_db_tools\\geol_db_tools\\uploads'
+UPLOAD_FOLDER = os.path.abspath('uploads')
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+
 ALLOWED_EXTENSIONS = set(['xls', 'xlsx'])
 COUCH_URL = 'http://localhost:5984'
 
