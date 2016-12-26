@@ -80,11 +80,12 @@ class RegistryExc(Exception):
 
 
 class Registry:
-    def __init__(self, registry_df, registry_cols_dict):
-        self.registry = registry_df.fillna('')
+    def __init__(self, registry_df, registry_cols_dict, actual=False):
+        self.registry = registry_df
         self.errors = dict()
         self.cols = registry_cols_dict
         self.actual_cols = ('_id', '_rev', 'id_reg', 'filename')
+        self.actual = actual
 
     def __append_errors(self, err_name, err_str):
         if err_name in self.errors:
@@ -129,27 +130,27 @@ class Registry:
         concat_df.drop_duplicates(inplace=True)
         self.registry = concat_df
 
-    def duplicates_other(self, other):
-        none_duplicates = self.registry[~self.registry['_id'].duplicated(keep=False)]
-        concat_df = pd.concat([none_duplicates, other])
-        concat_df.drop(['N_change', 'actual', 'id_reg'], axis=1, inplace=True)
-        concat_df_duplicates_id = concat_df.loc[concat_df.duplicated(keep=False), '_id']
-        self.registry = self.registry[~self.registry['_id'].isin(concat_df_duplicates_id)]
+    # def duplicates_other(self, other):
+    #     none_duplicates = self.registry[~self.registry['_id'].duplicated(keep=False)]
+    #     concat_df = pd.concat([none_duplicates, other])
+    #     concat_df.drop(['N_change', 'actual', 'id_reg'], axis=1, inplace=True)
+    #     concat_df_duplicates_id = concat_df.loc[concat_df.duplicated(keep=False), '_id']
+    #     self.registry = self.registry[~self.registry['_id'].isin(concat_df_duplicates_id)]
 
-    def registry_errors(self, actual=False):
+    def registry_errors(self):
         self._columns_strip()
         self._check_registry_cols()
-        if actual:
+        if self.actual:
             self._check_actual_cols()
         if self.errors:
             raise RegistryExc
 
-    def make_registry_for_import(self, actual=False):
-        self.registry_errors(actual)
+    def make_registry_for_import(self):
+        self.registry_errors()
         self._update_column_names_for_db()
-        self._fix_float()
         self.check_actual_duplicates('N', 'actual', '_id')
         self.former_imp_registry('actual', 'change_type')
+        self._fix_float()
 
 
 
