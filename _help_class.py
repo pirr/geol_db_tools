@@ -2,6 +2,7 @@
 
 import os
 from datetime import datetime
+from collections import OrderedDict
 
 import pandas as pd
 from flask import flash
@@ -135,15 +136,17 @@ class RegistryImporter:
             actual_cols = actual_cols
         else:
             actual_cols = False
-        registry_inst = Registry(registry_df, REGISTRY_COLUMNS, actual_cols)
         try:
-            registry_inst.make_registry_for_import()
+            registry_inst = Registry(registry_df, REGISTRY_COLUMNS, actual_cols)
+            print(len(registry_inst.registry))
+            # registry_inst.make_registry_for_import()
         except RegistryExc:
             flash_mess(message_former_from(registry_inst.errors))
+            raise RegistryExc('RegistryExc')
         except Exception:
             flash_mess('Неизвестная ошибка, обратитесь к администратору')
-        
-        return registry_inst
+            raise Exception('Exception')
+        return registry_inst.registry
     
     def drop_db_duplicates(self):
         duplicates = self.registry_inst['_id'].duplicated(keep=False)
@@ -196,12 +199,13 @@ class RegistryImporter:
         self.db['regs_info'] = self.regs_info
 
     def make_import(self):
-        data_dict = self.import_registry
-        try:
-            self.db.update(data_dict)
-        except Exception as e:
-            flash_mess('Ошибка базы данных')
-            raise e
+        for df in self.import_registry:
+            data_dict = df.to_dict(orient='records')
+            try:
+                self.db.update(data_dict)
+            except Exception as e:
+                flash_mess('Ошибка базы данных')
+                raise e
 
 
 

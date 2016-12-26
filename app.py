@@ -15,9 +15,10 @@ from flask import (request, redirect, url_for,
 from werkzeug.utils import secure_filename
 
 import forms
-from _help_fun import read_excel
+# from _help_fun import read_excel
 from setup import app, cdb, _REGISTRY_COLUMNS
 from views import mango_query
+from _help_class import RegistryImporter
 
 
 # from logger import log_to_file
@@ -76,52 +77,15 @@ def uploads_file(filename, type):
 @app.route('/import/<filename>-<type>')
 def import_file(filename, type):
     try:
-        regs_info = cdb['regs_info']
-        t = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        dfs = []
-
-        if type == 'actual':
-            data = read_excel(filename, actual=True)
-            
-            df_new_rows = data[pd.isnull(data['_id'])]
-            df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
-            if not df_new_rows.empty:
-                dfs.append(df_new_rows)
-            df_updated_rows = data[~pd.isnull(data['_id'])]
-
-            if not df_updated_rows.empty:
-                dfs.append(df_updated_rows)
-            id_reg = session['id_reg']
-            regs_info[id_reg]['modified'] = t
-
-        else:
-            data = read_excel(filename, actual=False)
-            dfs.append(data)
-            reg_ids = [int(id) for id in list(regs_info) if id not in ('_id', '_rev')]
-            if reg_ids:
-                id_reg = str(max(reg_ids) + 1)
-            else:
-                id_reg = '1'
-            regs_info[id_reg] = {'created': t,
-                                 'modified': '',
-                                 'reg_name': session['reg_name']}
-
-        if dfs:
-            for df in dfs:
-                try:
-                    df.fillna('', inplace=True)
-                    df['id_reg'] = id_reg
-                    df.replace('nan', '', inplace=True)
-                    data_dict = df.to_dict(orient='records')
-                    res = cdb.update(data_dict)
-                except Exception as e:
-                    raise e
-
-            cdb['regs_info'] = regs_info
-
+        registry_importer = RegistryImporter(upload_folder=app.config['UPLOAD_FOLDER'],
+                                            filename=filename, db=cdb, session=session,
+                                            actual=True if type == 'actual' else False)
+        registry_importer.make_import()
+        registry_importer.info_writer()
+    
     except Exception as e:
-        return redirect(url_for('upload_file', type=type))
-        # raise e
+        # return redirect(url_for('upload_file', type=type))
+        raise e
 
     return redirect(url_for('regs_list'))
 
@@ -151,7 +115,8 @@ def download_regist(id_reg, with_revs):
                         df = df.append(df_rev, ignore_index=True)
 
     else:
-        cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev', 'id_reg', 'filename']
+        cols = list(_REGISTRY_COLUMNS.keys()) + \
+            ['_id', '_rev', 'id_reg', 'filename']
 
     df_deleted = df.loc[
         df['change_type'] == 'удаление', '_id']
@@ -175,7 +140,7 @@ def download_regist(id_reg, with_revs):
     output.seek(0)
 
     return send_file(output,
-                     attachment_filename="{}.xls".format('reestr_'+id_reg),
+                     attachment_filename="{}.xls".format('reestr_' + id_reg),
                      as_attachment=True
                      )
 

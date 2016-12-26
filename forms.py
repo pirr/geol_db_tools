@@ -37,7 +37,7 @@ class NewUploadForm(FlaskForm):
             return False
 
         if reg_name.strip() == '':
-            self.reg_name.errors.appens('Введите название реестра')
+            self.reg_name.errors.append('Введите название реестра')
             return False
 
         if not allowed_file(filename):
