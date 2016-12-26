@@ -73,7 +73,6 @@ def read_excel(filename, actual=False):
         flash('''Проблемы при чтении файла. Возможно в файле {} нет листа reestr'''.format(
             filename), category='error')
         os.remove(f)
-        print(str(e))
         raise e
 
     # TODO validate function

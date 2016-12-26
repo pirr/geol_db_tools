@@ -120,9 +120,8 @@ def import_file(filename, type):
             cdb['regs_info'] = regs_info
 
     except Exception as e:
-        # os.remove(filename)
-        # return redirect(url_for('upload_file', type=type))
-        raise e
+        return redirect(url_for('upload_file', type=type))
+        # raise e
 
     return redirect(url_for('regs_list'))
 
