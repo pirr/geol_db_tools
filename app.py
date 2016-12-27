@@ -16,9 +16,9 @@ from werkzeug.utils import secure_filename
 
 import forms
 # from _help_fun import read_excel
-from setup import app, cdb, _REGISTRY_COLUMNS
+from setup import app, cdb, _REGISTRY_COLUMNS, REGISTRY_COLUMNS
 from views import mango_query
-from _help_class import RegistryImporter
+from registry import Registry, read_excel, RegistryExc
 
 
 # from logger import log_to_file
@@ -29,8 +29,9 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/upload/<type>', methods=['GET', 'POST'])
+@app.route('/upload/<type>', methods=['POST', 'GET'])
 def upload_file(type):
+    print('upload')
     imp.reload(forms)
     if type == 'actual':
         form = forms.ActualUploadForm()
@@ -73,19 +74,32 @@ def uploads_file(filename, type):
 
     return redirect(url_for('import_file', filename=filename, type=type))
 
+'''
+    читаем реестр из excel
+    проверяем реестр на ошибки и форматируем для импорта в бд
+    
+'''
 
 @app.route('/import/<filename>-<type>')
 def import_file(filename, type):
     try:
-        registry_importer = RegistryImporter(upload_folder=app.config['UPLOAD_FOLDER'],
-                                            filename=filename, db=cdb, session=session,
-                                            actual=True if type == 'actual' else False)
-        registry_importer.make_import()
-        registry_importer.info_writer()
+        registry = Registry(read_excel(filename), REGISTRY_COLUMNS, actual_cols_list=False)
+        import_registry = registry.make_registry_for_import()
+        print(len(import_registry))
+        # asdad
+        # registry_importer = RegistryImporter(upload_folder=app.config['UPLOAD_FOLDER'],
+        #                                     filename=filename, db=cdb, session=session,
+        #                                     actual=True if type == 'actual' else False)
+        # registry_importer.make_import()
+        # registry_importer.info_writer()
     
-    except Exception as e:
-        # return redirect(url_for('upload_file', type=type))
-        raise e
+    except RegistryExc as e:
+        return redirect(url_for('upload_file', type=type))
+        # raise e
+
+    # except Exception as e:
+    #     return redirect(url_for('upload_file', type=type))
+        # raise e
 
     return redirect(url_for('regs_list'))
 

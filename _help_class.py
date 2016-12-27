@@ -79,7 +79,7 @@ def mango_query(db, **kwargs):
     return r.json()['docs']
 
 def flash_mess(mes):
-    flash(mes,category='error')
+    return flash(mes,category='error')
 
 def message_former_from(message_dict):
     message = '\n'.join(
@@ -140,12 +140,12 @@ class RegistryImporter:
             registry_inst = Registry(registry_df, REGISTRY_COLUMNS, actual_cols)
             print(len(registry_inst.registry))
             # registry_inst.make_registry_for_import()
-        except RegistryExc:
+        except RegistryExc as e:
             flash_mess(message_former_from(registry_inst.errors))
-            raise RegistryExc('RegistryExc')
-        except Exception:
+            raise e
+        except Exception as e:
             flash_mess('Неизвестная ошибка, обратитесь к администратору')
-            raise Exception('Exception')
+            raise e
         return registry_inst.registry
     
     def drop_db_duplicates(self):
