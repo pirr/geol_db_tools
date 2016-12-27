@@ -110,7 +110,7 @@ class Registry:
         if self.errors:
             flash(message_former_from(self.errors))
             print(message_former_from(self.errors))
-            raise RegistryExc
+            raise RegistryExc(message_former_from(self.errors))
 
     def registry_errors(self):
         self.fix_float()
@@ -121,10 +121,12 @@ class Registry:
     def make_registry_for_import(self):
         self._columns_strip()
         self._check_registry_cols()
-        # self.check_errors()
-        self.fix_float()
-        # self.registry_errors()
         self.check_errors()
+        self.fix_float()
+        if self.actual_cols:
+            self._check_actual_cols()
+            self._check_actual_duplicates('N', 'actual', '_id')
+        # self.check_errors()
         self.update_column_names_for_db()
         self.former_imp_registry('actual', 'change_type')
         self.registry.fillna('', inplace=True)
