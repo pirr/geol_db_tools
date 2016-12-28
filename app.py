@@ -15,10 +15,10 @@ from flask import (request, redirect, url_for,
 from werkzeug.utils import secure_filename
 
 import forms
-# from _help_fun import read_excel
-from setup import app, cdb, _REGISTRY_COLUMNS, REGISTRY_COLUMNS
+from _help_fun import read_excel
+from setup import app, cdb, _REGISTRY_COLUMNS
 from views import mango_query
-from registry import Registry, read_excel, RegistryExc
+from registry import RegistryFormatter, RegistryExc
 
 
 # from logger import log_to_file
@@ -75,32 +75,43 @@ def uploads_file(filename, type):
     return redirect(url_for('import_file', filename=filename, type=type))
 
 '''
-    читаем реестр из excel
+    читаем реестр из excel файла
     проверяем реестр на ошибки и форматируем для импорта в бд
-    
+
 '''
+
 
 @app.route('/import/<filename>-<type>')
 def import_file(filename, type):
     try:
-        registry = Registry(read_excel(filename), REGISTRY_COLUMNS, actual_cols_list=False)
-        import_registry = registry.make_registry_for_import()
-        print(len(import_registry))
+        # чтение excel
+        data = read_excel(filename)
+        # валидация реестра
+        reg_format = RegistryFormatter(data, type=type)
+        reg_format.make_validate()
+        registry = reg_format.registry
+        print(len(registry))
+        # если ошибок нет
+        	# загрузка в БД новых строк
+        	# загрузка в БД обновленных строк
+        	# редирект на страницу перечней реестров
+        # иначе
+        	# редирект на страницу загрузки реестров с выводом ошибок
+
         # asdad
         # registry_importer = RegistryImporter(upload_folder=app.config['UPLOAD_FOLDER'],
         #                                     filename=filename, db=cdb, session=session,
         #                                     actual=True if type == 'actual' else False)
         # registry_importer.make_import()
         # registry_importer.info_writer()
-    
+
     except RegistryExc as e:
         return redirect(url_for('upload_file', type=type))
-        # raise e
+    # raise e
 
     # except Exception as e:
     #     return redirect(url_for('upload_file', type=type))
-        # raise e
-
+    # raise e
     return redirect(url_for('regs_list'))
 
 
