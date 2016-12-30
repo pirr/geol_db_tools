@@ -72,20 +72,9 @@ REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
 
 actual_cols = ('_id', '_rev', 'id_reg', 'filename')
 
-def message_former_from(message_dict):
-    message = '\n'.join(
-        ': '.join([pk, ', '.join(pv)]) for pk, pv in message_dict.items()
-    )
-
-    return message
-
 
 class RegistryExc(Exception):
     pass
-
-
-def flash_mess(mess):
-    flash(mess, category='error')
 
 
 class RegistryFormatter:
