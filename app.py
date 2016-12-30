@@ -80,12 +80,7 @@ def import_file(filename, type):
     '''
     читаем реестр из excel файла
     проверяем реестр на ошибки и форматируем для импорта в бд
-
     '''
-
-
-@app.route('/import/<filename>-<type>')
-def import_file(filename, type):
     try:
         # чтение excel
         data = read_excel(filename)
