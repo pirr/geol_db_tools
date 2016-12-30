@@ -6,8 +6,17 @@ import pandas as pd
 from setup import app, REGISTRY_COLUMNS
 from flask import flash, session
 
-from setup import cdb
-from views import mango_query
+
+def flash_mess(mess):
+    flash(mess, category='error')
+
+
+def message_former_from(message_dict):
+    message = '\n'.join(
+        ': '.join([pk, ', '.join(pv)]) for pk, pv in message_dict.items()
+    )
+
+    return message
 
 
 def read_excel(filename, actual=False):

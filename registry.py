@@ -9,6 +9,7 @@ import pandas as pd
 from flask import flash
 
 from setup import app
+from _help_fun import flash_mess, message_former_from
 
 
 REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
