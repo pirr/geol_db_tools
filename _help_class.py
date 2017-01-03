@@ -7,7 +7,7 @@ from collections import OrderedDict
 import pandas as pd
 from flask import flash
 
-from registry import Registry, RegistryExc
+from registry import RegistryFormatter, RegistryExc
 
 
 REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
@@ -72,12 +72,6 @@ _REGISTRY_COLUMNS = OrderedDict([(v, k) for k, v in REGISTRY_COLUMNS.items()])
 actual_cols = ('_id', '_rev', 'id_reg', 'filename')
 
 
-def mango_query(db, **kwargs):
-    cdb = db.name
-    selector = {'selector': kwargs, 'limit': 100000}
-    r = requests.post('/'.join([COUCH_URL, cdb, '_find']), json=selector)
-    return r.json()['docs']
-
 def flash_mess(mes):
     return flash(mes,category='error')
 
@@ -137,7 +131,7 @@ class RegistryImporter:
         else:
             actual_cols = False
         try:
-            registry_inst = Registry(registry_df, REGISTRY_COLUMNS, actual_cols)
+            registry_inst = RegistryFormatter(registry_df, REGISTRY_COLUMNS, actual_cols)
             print(len(registry_inst.registry))
             # registry_inst.make_registry_for_import()
         except RegistryExc as e:
