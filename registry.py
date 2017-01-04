@@ -150,6 +150,14 @@ class RegistryFormatter:
         concat_df.drop_duplicates(inplace=True)
         self.registry = concat_df
 
+    # получение обновляемых строк
+    def get_update_rows(self):
+        return self.registry[~pd.isnull(self.registry['_id'])]
+
+    # получение новых строк
+    def get_new_rows(self):
+        return self.registry[pd.isnull(self.registry['_id'])]
+
     # def duplicates_other(self, other):
     #     none_duplicates = self.registry[~self.registry['_id'].duplicated(keep=False)]
     #     concat_df = pd.concat([none_duplicates, other])
