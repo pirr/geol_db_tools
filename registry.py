@@ -6,11 +6,14 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-from flask import flash
+from flask import session
 
 from setup import app
 from _help_fun import flash_mess, message_former_from
+from db import DBConn
 
+
+db = DBConn()
 
 REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
                                 ('Актуальность строки', 'actual'),
@@ -82,10 +85,11 @@ class RegistryFormatter:
         верификация и форматирование реестра для импорта в БД
     '''
 
-    def __init__(self, registry_df, registry_cols_dict=REGISTRY_COLUMNS, type=''):
+    def __init__(self, registry_df, id_reg, registry_cols_dict=REGISTRY_COLUMNS, type=''):
         self.registry = registry_df
         self.errors = dict()
         self.cols = registry_cols_dict
+        self.id_reg = id_reg
         if type == 'actual':
             self.actual_cols = actual_cols
         else:
@@ -165,6 +169,8 @@ class RegistryFormatter:
     #     concat_df_duplicates_id = concat_df.loc[concat_df.duplicated(keep=False), '_id']
     #     self.registry = self.registry[~self.registry['_id'].isin(concat_df_duplicates_id)]
 
+
+
     def check_errors(self):
         if self.errors:
             mess = message_former_from(self.errors)
@@ -190,3 +196,24 @@ class RegistryFormatter:
         self.check_errors()
         self.former_imp_registry('actual', 'change_type')
         self.registry.fillna('', inplace=True)
+
+    # получение строк из БД
+    def __get_db_rows(self):
+        db_docs = db.get_docs(**{'id_reg': {'$eq': self.id_reg}})
+        return pd.DataFrame(db_docs)
+
+    # получение строк реестра, которые в единственном экземпляре
+    def __get_none_duplicates(self):
+        duplicates = self.registry.duplicated(keep=False)
+        return self.registry[~duplicates]
+
+    # очистка реестра от строк, которые уже есть в БД
+    def clear_db_duplicates(self):
+        none_duplicates = self.__get_none_duplicates()
+        db_rows = self.__get_db_rows()
+        db_rows = db_rows.append(none_duplicates)
+        db_rows.drop(['N_change', 'actual', 'id_reg'], axis=1)
+        db_duplicates = db_rows.duplicated(keep=False)
+        db_duplicates_id = db_rows.loc[db_duplicates, '_id']
+        self.registry = self.registry[~self.registry['_id'].isin(db_duplicates_id)]
+        self.registry['id_reg'] = self.id_reg
