@@ -6,19 +6,18 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-from flask import session
 
 from setup import app
 from _help_fun import flash_mess, message_former_from
-from db import DBConn
+from db import DBConnCouch
 
-
-db = DBConn()
+db = DBConnCouch()
 
 REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
                                 ('Актуальность строки', 'actual'),
                                 ('№ изменений', 'N_change'),
-                                ('Операция внесения (добавление, изменение, удаление)', 'change_type'),
+                                ('Операция внесения (добавление, изменение, удаление)',
+                                 'change_type'),
                                 ('№ объекта', 'N_obj'),
                                 ('Признак комплексного', 'complex'),
                                 ('Вид документа регистрации1)', 'doc_type'),
@@ -28,7 +27,8 @@ REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
                                 ('Номер документа', 'doc_num'),
                                 ('Дата регистрации', 'doc_date'),
                                 ('Год регистрации (для сортировки)', 'doc_date_num'),
-                                ('№ объекта в документе регистрации', 'obj_num_in_doc'),
+                                ('№ объекта в документе регистрации',
+                                 'obj_num_in_doc'),
                                 ('Федеральный округ', 'fed_distr'),
                                 ('Субъект РФ', 'subj_distr'),
                                 ('Административный район', 'adm_distr'),
@@ -53,7 +53,8 @@ REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
                                 ('Признак наличия ресурсных оценок', 'res_exist'),
                                 ('Наличие прогнозных ресурсов', 'cat_avaibil'),
                                 ('Признак наличия запасов', 'res_avaibil'),
-                                ('Вид документа апробации (протокол, отчет)', 'probe_doc_type'),
+                                ('Вид документа апробации (протокол, отчет)',
+                                 'probe_doc_type'),
                                 ('Номер', 'probe_doc_num'),
                                 ('Дата', 'probe_doc_date'),
                                 ('Орган апробации', 'probe_doc_organ'),
@@ -67,7 +68,8 @@ REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
                                 ('Входимость в лицензионыый участок', 'license_area'),
                                 ('Достоверность координат', 'coord_reliability'),
                                 ('Координаты треб. проверки', 'coord_for_check'),
-                                ('Данные о районе (для определения координат)', 'territory_descript'),
+                                ('Данные о районе (для определения координат)',
+                                 'territory_descript'),
                                 ('Другие документы об объекте (вид документа, №, год, стадия ГРР, авторы, организация)',
                                  'other_source'),
                                 ('Рекомендуемые работы (оценка ПР, апробация ПР, в фонд заявок, поиски, оценка и др.)',
@@ -85,15 +87,10 @@ class RegistryFormatter:
         верификация и форматирование реестра для импорта в БД
     '''
 
-    def __init__(self, registry_df, id_reg, registry_cols_dict=REGISTRY_COLUMNS, type=''):
+    def __init__(self, registry_df, registry_cols_dict):
         self.registry = registry_df
-        self.errors = dict()
         self.cols = registry_cols_dict
-        self.id_reg = id_reg
-        if type == 'actual':
-            self.actual_cols = actual_cols
-        else:
-            self.actual_cols = []
+        self.errors = dict()
 
     # сбор ошибок верификации реестра
     def __append_errors(self, err_name, err_str):
@@ -102,33 +99,32 @@ class RegistryFormatter:
         else:
             self.errors[err_name] = [err_str]
 
+    # проверка наличия ошибок
+    def check_errors(self):
+        if self.errors:
+            mess = message_former_from(self.errors)
+            flash_mess(mess)
+            raise RegistryExc(mess)
+
     # удаление переносов и других непробельных символов в названии колонок
     # реестра
-    def _columns_strip(self):
+    def columns_strip(self):
         pattern = re.compile(r'\s+')
         self.registry.columns = [pattern.sub(
             ' ', c) for c in self.registry.columns]
 
     # проверка наличия колонок, если отсутсвуют то записать их в
     # соотвествующую ошибку
-    def __check_columns(self, *cols):
-        none_cols = [c for c in cols if c not in self.registry.columns]
+    def check_columns(self):
+        none_cols = [c for c in self.cols.keys()
+                     if c not in self.registry.columns]
         if none_cols:
             self.__append_errors(
                 'В реестре отсутствуют колонки', ', '.join(none_cols))
 
-    # проверка наличия основных колонок реестра
-    def _check_registry_cols(self):
-        self.__check_columns(*self.cols.keys())
-
-    # проверка наличия колонок реестра для актуализации
-    def _check_actual_cols(self):
-        self.__check_columns(*self.actual_cols)
-
     # обновление названий колонок для БД
     def update_column_names_for_db(self):
-        self.registry.columns = [c if c in self.actual_cols else self.cols[
-            c] for c in self.registry.columns]
+        self.registry.columns = [self.cols[c] for c in self.registry.columns]
 
     # округление чисел с плавающей точкой
     def fix_float(self):
@@ -136,70 +132,37 @@ class RegistryFormatter:
             if self.registry[col].dtype == np.float64:
                 self.registry[col] = np.round(self.registry[col], 8)
 
-    # проверяет дубликаты актуальных строк, если они есть записывает пары в
-    # соответствующую ошибку
-    def _check_actual_duplicates(self, n_col, *checking_cols):
-        duplicates = self.registry[checking_cols].duplicated(keep=False)
-        if not self.registry[duplicates].empty:
-            duplicates = self.registry.groupby(
-                checking_cols)[n_col].apply(list).tolist()
-            self.__append_errors(
-                'Дубликаты актуальных строк', ', '.join(duplicates))
-
-    def former_imp_registry(self, *chunk_fields):
-        concat_df = pd.DataFrame()
-        for field in chunk_fields:
-            chunk_df = self.registry[~pd.isnull(self.registry[field])]
-            concat_df = pd.concat([concat_df, chunk_df])
-        concat_df.drop_duplicates(inplace=True)
-        self.registry = concat_df
-
-    # получение обновляемых строк
-    def get_update_rows(self):
-        return self.registry[~pd.isnull(self.registry['_id'])]
-
-    # получение новых строк
-    def get_new_rows(self):
-        return self.registry[pd.isnull(self.registry['_id'])]
-
-    # def duplicates_other(self, other):
-    #     none_duplicates = self.registry[~self.registry['_id'].duplicated(keep=False)]
-    #     concat_df = pd.concat([none_duplicates, other])
-    #     concat_df.drop(['N_change', 'actual', 'id_reg'], axis=1, inplace=True)
-    #     concat_df_duplicates_id = concat_df.loc[concat_df.duplicated(keep=False), '_id']
-    #     self.registry = self.registry[~self.registry['_id'].isin(concat_df_duplicates_id)]
-
-
-
-    def check_errors(self):
-        if self.errors:
-            mess = message_former_from(self.errors)
-            flash_mess(mess)
-            raise RegistryExc(mess)
-
-    def registry_errors(self):
-        self.fix_float()
-        if self.actual_cols:
-            self._check_actual_cols()
-            self._check_actual_duplicates('N', 'actual', '_id')
-
-    def make_validate(self):
-        self._columns_strip()
-        self._check_registry_cols()
+    def format(self):
+        self.columns_strip()
+        self.check_columns()
         self.check_errors()
+        self.fix_float()
         self.update_column_names_for_db()
-        self.fix_float()
-        if self.actual_cols:
-            self._check_actual_cols()
-            self.check_errors()
-            self._check_actual_duplicates('N', 'actual', '_id')
-        self.check_errors()
-        self.former_imp_registry('actual', 'change_type')
         self.registry.fillna('', inplace=True)
+
+
+class RegistryFormatterNew(RegistryFormatter):
+
+    def __init__(self, registry_df):
+        RegistryFormatter.__init__(self,
+                                   registry_df=registry_df,
+                                   registry_cols_dict=REGISTRY_COLUMNS)
+
+
+class RegistryFormatterUpdate(RegistryFormatter):
+
+    def __init__(self, registry_df, id_reg):
+        RegistryFormatter.__init__(self,
+                                   registry_df=registry_df,
+                                   registry_cols_dict=REGISTRY_COLUMNS)
+        self.id_reg = id_reg
+
+        for k in actual_cols:
+            self.cols[k] = k
 
     # получение строк из БД
     def __get_db_rows(self):
-        db_docs = db.get_docs(**{'id_reg': {'$eq': self.id_reg}})
+        db_docs = db.get_selected(**{'id_reg': {'$eq': self.id_reg}})
         return pd.DataFrame(db_docs)
 
     # получение строк реестра, которые в единственном экземпляре
@@ -207,13 +170,51 @@ class RegistryFormatter:
         duplicates = self.registry.duplicated(keep=False)
         return self.registry[~duplicates]
 
-    # очистка реестра от строк, которые уже есть в БД
-    def clear_db_duplicates(self):
+    def __clear_db_duplicates(self):
         none_duplicates = self.__get_none_duplicates()
+        print('len none_duplicates', len(none_duplicates))
         db_rows = self.__get_db_rows()
+        print('len db rows:', len(db_rows))
         db_rows = db_rows.append(none_duplicates)
-        db_rows.drop(['N_change', 'actual', 'id_reg'], axis=1)
+        db_rows.drop(['N_change', 'actual', 'id_reg', 'filename'],
+                     axis=1, inplace=True)
+        print('db_rows cols', db_rows.columns)
         db_duplicates = db_rows.duplicated(keep=False)
         db_duplicates_id = db_rows.loc[db_duplicates, '_id']
-        self.registry = self.registry[~self.registry['_id'].isin(db_duplicates_id)]
-        self.registry['id_reg'] = self.id_reg
+        print('len db_duplicates_id:', len(db_duplicates_id))
+        self.registry = self.registry[
+            ~self.registry['_id'].isin(db_duplicates_id)]
+
+    def __former_imp_registry(self, chunk_fields=['actual', 'change_type']):
+        concat_df = pd.DataFrame()
+        for field in chunk_fields:
+            chunk_df = self.registry[~pd.isnull(self.registry[field])]
+            concat_df = pd.concat([concat_df, chunk_df])
+        concat_df.drop_duplicates(inplace=True)
+        self.registry = concat_df
+
+    # проверяет дубликаты актуальных строк, если они есть записывает пары в
+    # соответствующую ошибку
+    def __check_actual_duplicates(self, n_col='N', checking_cols=['actual', '_id']):
+        duplicates = self.registry[checking_cols].duplicated(keep=False)
+        if not self.registry[duplicates].empty:
+            duplicates = self.registry.groupby(
+                checking_cols)[n_col].apply(list).tolist()
+            self.__append_errors(
+                'Дубликаты актуальных строк', ', '.join(duplicates))
+
+    def __get_new_rows(self):
+        return self.registry.loc[pd.isnull(self.registry['_id'])]
+
+    def __get_update_rows(self):
+        return self.registry.loc[~pd.isnull(self.registry['_id'])]
+
+    def format_actual(self):
+        self.format()
+        self.__check_actual_duplicates()
+        self.check_errors()
+        self.__former_imp_registry()
+        self.__clear_db_duplicates()
+
+    def split_on_new_update(self):
+        self.registry = (self.__get_new_rows(), self.__get_update_rows())

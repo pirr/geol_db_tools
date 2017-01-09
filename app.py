@@ -18,10 +18,12 @@ import forms
 from _help_fun import read_excel
 from setup import app, cdb, _REGISTRY_COLUMNS
 from views import mango_query
-from registry import RegistryFormatter, RegistryExc
+from registry import RegistryFormatterNew, RegistryFormatterUpdate, RegistryExc
+from db import DBConnCouch
 
 
 # from logger import log_to_file
+ddb = DBConnCouch()
 
 
 @app.route('/')
@@ -81,27 +83,45 @@ def import_file(filename, type):
     читаем реестр из excel файла
     проверяем реестр на ошибки и форматируем для импорта в бд
     '''
+    def saver(reg, id_reg):
+        reg['id_reg'] = id_reg
+        reg['filename'] = filename
+        ddb.bulk_save(reg.to_dict(orient='records'))
+
     try:
         # чтение excel
         data = read_excel(filename)
+
         # валидация реестра
-        reg_format = RegistryFormatter(data, type=type)
-        reg_format.make_validate()
-        registry = reg_format.registry
+        if type == 'new':
+            reg_format = RegistryFormatterNew(data)
+            reg_format.format()
+            registry = reg_format.registry
+            id_reg = ddb.write_reg_info(reg_name=session['reg_name'])
+            saver(registry, id_reg)
+            # registry['id_reg'] = id_reg
+            # registry['filename'] = filename
+            # ddb.bulk_save(registry.to_dict(orient='records'))
+
+        elif type == 'actual':
+            reg_format = RegistryFormatterUpdate(data)
+            reg_format.format_actual()
+            registries = reg_format.split_on_new_update()
+            id_reg = ddb.write_reg_info(id_reg=session['id_reg'])
+            for reg in registries:
+                saver(reg, id_reg)
+                # reg['id_reg'] = id_reg
+                # reg['file'] = filename
+                # ddb.bulk_save(reg.to_dict(orient='records'))
+
+
         print(len(registry))
         # если ошибок нет
-        	# загрузка в БД новых строк
-        	# загрузка в БД обновленных строк
-        	# редирект на страницу перечней реестров
+        # загрузка в БД новых строк
+        # загрузка в БД обновленных строк
+        # редирект на страницу перечней реестров
         # иначе
-        	# редирект на страницу загрузки реестров с выводом ошибок
-
-        # asdad
-        # registry_importer = RegistryImporter(upload_folder=app.config['UPLOAD_FOLDER'],
-        #                                     filename=filename, db=cdb, session=session,
-        #                                     actual=True if type == 'actual' else False)
-        # registry_importer.make_import()
-        # registry_importer.info_writer()
+        # редирект на страницу загрузки реестров с выводом ошибок
 
     except RegistryExc as e:
         return redirect(url_for('upload_file', type=type))
