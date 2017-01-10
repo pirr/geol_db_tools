@@ -98,7 +98,7 @@ def import_file(filename, type):
             reg_format = RegistryFormatterNew(data)
             reg_format.format()
             registry = reg_format.registry
-            id_reg = ddb.get_reg_id_info(reg_name=session['reg_name'])
+            id_reg, _ = ddb.get_reg_id_info(reg_name=session['reg_name'])
             saver(registry, id_reg)
 
         elif type == 'actual':
