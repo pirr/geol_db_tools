@@ -116,12 +116,6 @@ def import_file(filename, type):
 
 
         print(len(registry))
-        # если ошибок нет
-        # загрузка в БД новых строк
-        # загрузка в БД обновленных строк
-        # редирект на страницу перечней реестров
-        # иначе
-        # редирект на страницу загрузки реестров с выводом ошибок
 
     except RegistryExc as e:
         return redirect(url_for('upload_file', type=type))
