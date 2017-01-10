@@ -227,3 +227,13 @@ class RegistryFormatterUpdate(RegistryFormatter):
 
     def split_on_new_update(self):
         self.registry = (self.__get_new_rows(), self.__get_update_rows())
+
+
+class RegistryDownloader:
+
+    def __init__(id_reg):
+        self.id_reg = id_reg
+
+    def get_rows_from_db(self):
+        selector = {'id_reg': {'$eq': self.id_reg}}
+        db.get_selected(selector)
