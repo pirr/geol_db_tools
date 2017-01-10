@@ -35,10 +35,11 @@ def index():
 def upload_file(type):
     print('upload')
     imp.reload(forms)
-    if type == 'actual':
-        form = forms.ActualUploadForm()
-    else:
+    if type == 'new':
         form = forms.NewUploadForm()
+    elif type == 'actual':
+        form = forms.ActualUploadForm()
+
     if form.validate_on_submit():
         filename = secure_filename(form.file.data.filename)
         form.file.data.save(os.path.join(
@@ -46,7 +47,7 @@ def upload_file(type):
 
         if type == 'new':
             session['reg_name'] = form.reg_name.data
-        else:
+        elif type == 'actual':
             session['id_reg'] = form.regs_select.data
 
         return redirect(url_for('uploads_file', filename=filename, type=type))
