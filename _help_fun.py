@@ -1,10 +1,8 @@
 import os
-import re
-import numpy as np
 import pandas as pd
 
-from setup import app, REGISTRY_COLUMNS
-from flask import flash, session
+from setup import app
+from flask import flash
 
 
 def flash_mess(mess):
