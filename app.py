@@ -113,11 +113,11 @@ def import_file(filename, type):
 
     except RegistryExc as e:
         return redirect(url_for('upload_file', type=type))
-    # raise e
 
-    # except Exception as e:
-    #     return redirect(url_for('upload_file', type=type))
-    # raise e
+    except Exception as e:
+        flash_mess('Ошибка. Обратитесь к администратору.')
+        return redirect(url_for('upload_file', type=type))
+
     return redirect(url_for('regs_list'))
 
 
