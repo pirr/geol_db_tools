@@ -75,6 +75,9 @@ REGISTRY_COLUMNS = OrderedDict([('№ строки', 'N'),
                                 ('Рекомендуемые работы (оценка ПР, апробация ПР, в фонд заявок, поиски, оценка и др.)',
                                  'recommendations')])
 
+INVERT_REGISTRY_COLUMNS = OrderedDict(
+    [(v, k) for k, v in REGISTRY_COLUMNS.items()])
+
 actual_cols = ('_id', '_rev', 'id_reg', 'filename')
 
 
@@ -261,3 +264,28 @@ class RegistryDownloader:
             self.cols, self.registry)
         self.registry.to_excel(writer, startrow=2, merge_cells=False,
                                sheet_name='reestr', index=False)
+
+
+class RegistryDownloaderWork(RegistryDownloader):
+
+    def __init__(self, id_reg):
+        RegistryDownloader.__init__(self, id_reg=id_reg,
+                                    columns=INVERT_REGISTRY_COLUMNS.keys())
+
+    def get_row_with_revisions(self):
+        registry_revs = self.registry.loc[(self.registry['N_change'].astype(str) != '') & (
+            self.registry['change_type'] != 'удаление'), '_id']
+        if registry_revs.empty:
+            return False
+        return registry_revs
+
+    def write_revisions_to_registry(self):
+        '''
+            добавляет ревизии (версии документов) в реестр
+        '''
+        registry_revs = self.get_row_with_revisions()
+        if registry_revs:
+            for _id in registry_revs:
+                for rev in db.get_revisions_by_id(_id):
+                    df_rev = pd.DataFrame(rev, index=[0])
+                    self.registry.append(df_rev)
