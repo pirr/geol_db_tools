@@ -289,3 +289,12 @@ class RegistryDownloaderWork(RegistryDownloader):
                 for rev in db.get_revisions_by_id(_id):
                     df_rev = pd.DataFrame(rev, index=[0])
                     self.registry.append(df_rev)
+
+
+class RegistryDownloaderActual(RegistryDownloader):
+
+    def __init__(self, id_reg):
+        RegistryDownloader.__init__(self, id_reg=id_reg,
+                                    columns=INVERT_REGISTRY_COLUMNS)
+        for k in actual_cols:
+            self.cols[k] = k
