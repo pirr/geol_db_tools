@@ -122,15 +122,22 @@ def import_file(filename, type):
     return redirect(url_for('regs_list'))
 
 
-@app.route('/download/<id_reg>-<with_revs>', methods=['GET', 'POST'])
-def download_regist(id_reg, with_revs):
+@app.route('/get_download', methods=['GET', 'POST'])
+def get_download():
+    wtype = request.args.get('wtype')
+    id_reg = request.args.get('id_reg')
+    return redirect(url_for('download_regist', id_reg=id_reg, wtype=wtype))
+
+
+@app.route('/download/<id_reg>-<wtype>', methods=['GET', 'POST'])
+def download_regist(id_reg, wtype):
     selector = {'id_reg': {'$eq': id_reg}}
     docs = mango_query(cdb, **selector)
     # db_cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev']
     df = pd.DataFrame(docs)
     print(len(df))
 
-    if with_revs == 'yes':
+    if wtype == 'work':
         cols = list(_REGISTRY_COLUMNS.keys())
 
         df_revs = df.loc[(df['N_change'].astype(str) != '') & (
@@ -146,7 +153,7 @@ def download_regist(id_reg, with_revs):
                             {k: v for k, v in rev.items()}, index=[0])
                         df = df.append(df_rev, ignore_index=True)
 
-    else:
+    elif wtype == 'actual':
         cols = list(_REGISTRY_COLUMNS.keys()) + \
             ['_id', '_rev', 'id_reg', 'filename']
 
@@ -175,13 +182,6 @@ def download_regist(id_reg, with_revs):
                      attachment_filename="{}.xls".format('reestr_' + id_reg),
                      as_attachment=True
                      )
-
-
-@app.route('/get_download', methods=['GET', 'POST'])
-def get_download():
-    with_revs = request.args.get('withRevs')
-    id_reg = request.args.get('reg_name')
-    return redirect(url_for('download_regist', id_reg=id_reg, with_revs=with_revs))
 
 
 @app.route('/regs')
