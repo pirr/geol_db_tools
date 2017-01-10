@@ -141,6 +141,17 @@ class RegistryFormatter:
         self.registry.fillna('', inplace=True)
 
 
+class RegistryDB:
+
+    def __init__(self, id_reg):
+        self.id_reg = id_reg
+
+    # получение строк из БД
+    def get_rows_by_id(self):
+        db_docs = db.get_selected(**{'id_reg': {'$eq': self.id_reg}})
+        return pd.DataFrame(db_docs)
+
+
 class RegistryFormatterNew(RegistryFormatter):
 
     def __init__(self, registry_df):
@@ -160,11 +171,6 @@ class RegistryFormatterUpdate(RegistryFormatter):
         for k in actual_cols:
             self.cols[k] = k
 
-    # получение строк из БД
-    def __get_db_rows(self):
-        db_docs = db.get_selected(**{'id_reg': {'$eq': self.id_reg}})
-        return pd.DataFrame(db_docs)
-
     # получение строк реестра, которые в единственном экземпляре
     def __get_none_duplicates(self):
         duplicates = self.registry.duplicated(keep=False)
@@ -173,7 +179,7 @@ class RegistryFormatterUpdate(RegistryFormatter):
     def __clear_db_duplicates(self):
         none_duplicates = self.__get_none_duplicates()
         print('len none_duplicates', len(none_duplicates))
-        db_rows = self.__get_db_rows()
+        db_rows = RegistryDB(self.id_reg).get_rows_by_id()
         print('len db rows:', len(db_rows))
         db_rows = db_rows.append(none_duplicates)
         db_rows.drop(['N_change', 'actual', 'id_reg', 'filename'],
