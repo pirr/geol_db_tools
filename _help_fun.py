@@ -12,11 +12,15 @@ def flash_mess(mess):
 
 
 def message_former_from(message_dict):
-    message = '\n'.join(
-        ': '.join([pk, ', '.join(pv)]) for pk, pv in message_dict.items()
-    )
+    messages = []
+    for mess_name, mess in message_dict.items():
+        mess_str = ', '.join(mess)
+        if mess_str:
+            messages.append(': '.join([mess_name, mess_str]) + '.')
+        else:
+            messages.append(mess_name + '.')
 
-    return message
+    return '\n'.join(messages)
 
 
 def read_excel(filename, actual=False):
