@@ -98,3 +98,13 @@ class DBConnCouch(DBConn):
 
     def write_reg_info(self):
         self.save('regs_info', self.regs_info)
+
+    def get_revisions_by_id(self, _id):
+        '''
+            возвращает ревизии документа по его _id начиная с 1 ревизии,
+                т.к. 0 - последняя ревизия
+            _id -- id документа
+        '''
+        for i, rev in enumerate(self.cdb.revisions(_id)):
+            if i:
+                yield {k: v for k, v in rev.items()}
