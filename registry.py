@@ -270,7 +270,7 @@ class RegistryDownloaderWork(RegistryDownloader):
 
     def __init__(self, id_reg):
         RegistryDownloader.__init__(self, id_reg=id_reg,
-                                    columns=INVERT_REGISTRY_COLUMNS.keys())
+                                    columns=INVERT_REGISTRY_COLUMNS)
 
     def get_row_with_revisions(self):
         registry_revs = self.registry.loc[(self.registry['N_change'].astype(str) != '') & (
