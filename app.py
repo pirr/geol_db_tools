@@ -87,33 +87,27 @@ def import_file(filename, type):
         reg['id_reg'] = id_reg
         reg['filename'] = filename
         ddb.bulk_save(reg.to_dict(orient='records'))
+        ddb.write_reg_info()
 
     try:
         # чтение excel
         data = read_excel(filename)
 
-        # валидация реестра
         if type == 'new':
             reg_format = RegistryFormatterNew(data)
             reg_format.format()
             registry = reg_format.registry
-            id_reg = ddb.write_reg_info(reg_name=session['reg_name'])
+            id_reg = ddb.get_reg_id_info(reg_name=session['reg_name'])
             saver(registry, id_reg)
-            # registry['id_reg'] = id_reg
-            # registry['filename'] = filename
-            # ddb.bulk_save(registry.to_dict(orient='records'))
 
         elif type == 'actual':
-            reg_format = RegistryFormatterUpdate(data)
+            reg_format = RegistryFormatterUpdate(
+                data, id_reg=session['id_reg'])
             reg_format.format_actual()
             registries = reg_format.split_on_new_update()
-            id_reg = ddb.write_reg_info(id_reg=session['id_reg'])
+            ddb.get_reg_id_info(id_reg=session['id_reg'])
             for reg in registries:
-                saver(reg, id_reg)
-                # reg['id_reg'] = id_reg
-                # reg['file'] = filename
-                # ddb.bulk_save(reg.to_dict(orient='records'))
-
+                saver(reg, session['id_reg'])
 
         print(len(registry))
 

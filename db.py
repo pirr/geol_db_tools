@@ -64,7 +64,7 @@ class DBConnCouch(DBConn):
         '''
         return datetime.now().strftime("%Y-%m-%d_%H-%M")
 
-    def __get_reg_id(self):
+    def __calc_reg_id(self):
         '''
             получение последнего + 1 id реестра
         '''
@@ -77,10 +77,10 @@ class DBConnCouch(DBConn):
 
         return id_reg
 
-    def write_reg_info(self, id_reg=None, reg_name=None):
+    def get_reg_id_info(self, id_reg=None, reg_name=None):
         '''
             внесение информации о реестре
-            возвращает id реестра (id_reg)
+            возвращает id реестра (id_reg) и информацию о реестре (reg_info)
             id_reg -- id реестра d БД
             reg_name -- название реестра
         '''
@@ -88,14 +88,13 @@ class DBConnCouch(DBConn):
         if id_reg is not None:
             self.regs_info[id_reg]['modified'] = t
         else:
-            id_reg = self.__get_reg_id()
+            id_reg = self.__calc_reg_id()
             print('id_reg:', id_reg)
             self.regs_info[id_reg] = {'created': t,
                                       'modified': '',
                                       'reg_name': reg_name}
+
+        return id_reg, self.regs_info[id_reg]
+
+    def write_reg_info(self):
         self.save('regs_info', self.regs_info)
-
-        return id_reg
-
-
-
