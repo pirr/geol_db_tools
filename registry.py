@@ -93,7 +93,7 @@ class RegistryFormatter:
         self.errors = dict()
 
     # сбор ошибок верификации реестра
-    def __append_errors(self, err_name, err_str):
+    def _append_errors(self, err_name, err_str):
         if err_name in self.errors:
             self.errors[err_name].extend(err_str)
         else:
@@ -119,7 +119,7 @@ class RegistryFormatter:
         none_cols = [c for c in self.cols.keys()
                      if c not in self.registry.columns]
         if none_cols:
-            self.__append_errors(
+            self._append_errors(
                 'В реестре отсутствуют колонки', ', '.join(none_cols))
 
     # обновление названий колонок для БД
@@ -178,12 +178,14 @@ class RegistryFormatterUpdate(RegistryFormatter):
         db_rows = db_rows.append(none_duplicates)
         db_rows.drop(['N_change', 'actual', 'id_reg', 'filename'],
                      axis=1, inplace=True)
-        print('db_rows cols', db_rows.columns)
         db_duplicates = db_rows.duplicated(keep=False)
         db_duplicates_id = db_rows.loc[db_duplicates, '_id']
         print('len db_duplicates_id:', len(db_duplicates_id))
         self.registry = self.registry[
             ~self.registry['_id'].isin(db_duplicates_id)]
+        if self.registry.empty:
+            self._append_errors(
+                'Загружаемый реестр не содержит новых строк', '')
 
     def __former_imp_registry(self, chunk_fields=['actual', 'change_type']):
         concat_df = pd.DataFrame()
@@ -215,6 +217,7 @@ class RegistryFormatterUpdate(RegistryFormatter):
         self.check_errors()
         self.__former_imp_registry()
         self.__clear_db_duplicates()
+        self.check_errors()
 
     def split_on_new_update(self):
         self.registry = (self.__get_new_rows(), self.__get_update_rows())
