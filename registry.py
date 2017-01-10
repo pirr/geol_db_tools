@@ -234,9 +234,30 @@ class RegistryFormatterUpdate(RegistryFormatter):
 
 class RegistryDownloader:
 
-    def __init__(id_reg):
+    def __init__(self, id_reg, columns):
         self.id_reg = id_reg
+        self.cols = columns
+        self.registry = RegistryDB.get_rows_by_id(self.id_reg)[self.cols]
 
-    def get_rows_from_db(self):
-        selector = {'id_reg': {'$eq': self.id_reg}}
-        db.get_selected(selector)
+    def _deleted_row_handler(self):
+        registry_del_rows = self.registry.loc[
+            self.registry['change_type'] == 'удаление', '_id']
+        self.registry.loc[self.registry['_id'].isin(
+            registry_del_rows), 'actual'] = ''
+
+    def _rev_num_field_former(self):
+        self.registry['rev_num'] = self.registry[
+            '_rev'].str.split('-').str.get(0)
+
+    def _change_type_field_former(self):
+        self.registry.at[self.registry['change_type']
+                         == 'добавление', 'N_change'] = 1
+        self.registry.at[self.registry['change_type'] != 'добавление', 'N_change'] = self.registry['rev_num'].apply(
+            lambda x: int(x) - 1 if int(x) > 1 else np.nan)
+        self.registry.drop('rev_num', axis=1, inplace=True)
+
+    def write_to_excel(self, writer):
+        self.registry.columns = RegistryDB.update_column_names_for_db(
+            self.cols, self.registry)
+        self.registry.to_excel(writer, startrow=2, merge_cells=False,
+                               sheet_name='reestr', index=False)
