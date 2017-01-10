@@ -142,14 +142,17 @@ class RegistryFormatter:
 
 
 class RegistryDB:
-
-    def __init__(self, id_reg):
-        self.id_reg = id_reg
-
+    '''
+        коннектор между базой данных и реестром
+    '''
     # получение строк из БД
-    def get_rows_by_id(self):
-        db_docs = db.get_selected(**{'id_reg': {'$eq': self.id_reg}})
+    def get_rows_by_id(id_reg):
+        db_docs = db.get_selected(**{'id_reg': {'$eq': id_reg}})
         return pd.DataFrame(db_docs)
+
+    # обновление названий колонок для БД
+    def update_column_names_for_db(cols, registry):
+        registry.columns = [cols[c] for c in registry.columns]
 
 
 class RegistryFormatterNew(RegistryFormatter):
@@ -179,7 +182,7 @@ class RegistryFormatterUpdate(RegistryFormatter):
     def __clear_db_duplicates(self):
         none_duplicates = self.__get_none_duplicates()
         print('len none_duplicates', len(none_duplicates))
-        db_rows = RegistryDB(self.id_reg).get_rows_by_id()
+        db_rows = RegistryDB.get_rows_by_id(self.id_reg)
         print('len db rows:', len(db_rows))
         db_rows = db_rows.append(none_duplicates)
         db_rows.drop(['N_change', 'actual', 'id_reg', 'filename'],
