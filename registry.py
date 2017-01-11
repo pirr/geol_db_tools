@@ -85,6 +85,20 @@ class RegistryExc(Exception):
     pass
 
 
+class RegistryDB:
+    '''
+        коннектор между базой данных и реестром
+    '''
+    # получение строк из БД
+    def get_rows_by_id(id_reg):
+        db_docs = db.get_selected(**{'id_reg': {'$eq': id_reg}})
+        return pd.DataFrame(db_docs)
+
+    # обновление названий колонок
+    def update_column_names(cols, registry):
+        return [cols[c] for c in registry.columns]
+
+
 class RegistryFormatter:
     '''
         верификация и форматирование реестра для импорта в БД
@@ -142,20 +156,6 @@ class RegistryFormatter:
         self.fix_float()
         self.update_column_names_for_db()
         self.registry.fillna('', inplace=True)
-
-
-class RegistryDB:
-    '''
-        коннектор между базой данных и реестром
-    '''
-    # получение строк из БД
-    def get_rows_by_id(id_reg):
-        db_docs = db.get_selected(**{'id_reg': {'$eq': id_reg}})
-        return pd.DataFrame(db_docs)
-
-    # обновление названий колонок для БД
-    def update_column_names_for_db(cols, registry):
-        registry.columns = [cols[c] for c in registry.columns]
 
 
 class RegistryFormatterNew(RegistryFormatter):
