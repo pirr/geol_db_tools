@@ -82,16 +82,16 @@ def uploads_file(filename, type):
 def import_file(filename, type):
     '''
     читаем реестр из excel файла
-    проверяем реестр на ошибки и форматируем для импорта в бд
+    проверяем реестр на ошибки, форматируем и сохраняем в бд
     '''
     def saver(reg, id_reg):
+        if not reg.empty:
         reg['id_reg'] = id_reg
         reg['filename'] = filename
         ddb.bulk_save(reg.to_dict(orient='records'))
         ddb.write_reg_info()
 
     try:
-        # чтение excel
         data = read_excel(filename)
 
         if type == 'new':
@@ -105,12 +105,12 @@ def import_file(filename, type):
             reg_format = RegistryFormatterUpdate(
                 data, id_reg=session['id_reg'])
             reg_format.format_actual()
-            registries = reg_format.split_on_new_update()
+            reg_format.split_on_new_update()
+            registries = reg_format.registry
             ddb.get_reg_id_info(id_reg=session['id_reg'])
+            print(registries)
             for reg in registries:
                 saver(reg, session['id_reg'])
-
-        print(len(registry))
 
     except RegistryExc as e:
         return redirect(url_for('upload_file', type=type))

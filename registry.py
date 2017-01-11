@@ -202,7 +202,7 @@ class RegistryFormatterUpdate(RegistryFormatter):
     def __former_imp_registry(self, chunk_fields=['actual', 'change_type']):
         concat_df = pd.DataFrame()
         for field in chunk_fields:
-            chunk_df = self.registry[~pd.isnull(self.registry[field])]
+            chunk_df = self.registry[self.registry[field] != '']
             concat_df = pd.concat([concat_df, chunk_df])
         concat_df.drop_duplicates(inplace=True)
         self.registry = concat_df
@@ -210,18 +210,23 @@ class RegistryFormatterUpdate(RegistryFormatter):
     # проверяет дубликаты актуальных строк, если они есть записывает пары в
     # соответствующую ошибку
     def __check_actual_duplicates(self, n_col='N', checking_cols=['actual', '_id']):
-        duplicates = self.registry[checking_cols].duplicated(keep=False)
-        if not self.registry[duplicates].empty:
-            duplicates = self.registry.groupby(
+        duplicates = self.registry[self.registry['_id'] != '']
+        duplicates = duplicates[checking_cols].duplicated(keep=False)
+        if not self.registry[duplicates[duplicates].index].empty:
+            duplicates = self.registry[duplicates].groupby(
                 checking_cols)[n_col].apply(list).tolist()
-            self.__append_errors(
-                'Дубликаты актуальных строк', ', '.join(duplicates))
+            duplicates = ['-'.join(str(row_num)
+                                   for row_num in d) for d in duplicates]
+            self._append_errors(
+                'Строки дублируются (нужно указывать актуальность только для одной строки) ', ', '.join(duplicates))
 
     def __get_new_rows(self):
-        return self.registry.loc[pd.isnull(self.registry['_id'])]
+        new_rows = self.registry[self.registry['_id'] == '']
+        new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
+        return new_rows
 
     def __get_update_rows(self):
-        return self.registry.loc[~pd.isnull(self.registry['_id'])]
+        return self.registry[self.registry['_id'] != '']
 
     def format_actual(self):
         self.format()
@@ -240,7 +245,7 @@ class RegistryDownloader:
     def __init__(self, id_reg, columns):
         self.id_reg = id_reg
         self.cols = columns
-        self.registry = RegistryDB.get_rows_by_id(self.id_reg)[self.cols]
+        self.registry = RegistryDB.get_rows_by_id(self.id_reg)
 
     def _deleted_row_handler(self):
         registry_del_rows = self.registry.loc[
@@ -252,15 +257,19 @@ class RegistryDownloader:
         self.registry['rev_num'] = self.registry[
             '_rev'].str.split('-').str.get(0)
 
-    def _change_type_field_former(self):
-        self.registry.at[self.registry['change_type']
-                         == 'добавление', 'N_change'] = 1
-        self.registry.at[self.registry['change_type'] != 'добавление', 'N_change'] = self.registry['rev_num'].apply(
-            lambda x: int(x) - 1 if int(x) > 1 else np.nan)
+    def _add_type_field_former(self):
+        self.registry.loc[self.registry['change_type']
+                          == 'добавление', 'N_change'] = 1
+        self.registry.loc[self.registry['change_type'] != 'добавление', 'N_change'] = self.registry['rev_num'].apply(
+            lambda x: int(x) - 1 if int(x) > 1 else '')
         self.registry.drop('rev_num', axis=1, inplace=True)
 
     def write_to_excel(self, writer):
-        self.registry.columns = RegistryDB.update_column_names_for_db(
+        self._deleted_row_handler()
+        self._rev_num_field_former()
+        self._add_type_field_former()
+        self.registry = self.registry[list(self.cols.keys())]
+        self.registry.columns = RegistryDB.update_column_names(
             self.cols, self.registry)
         self.registry.to_excel(writer, startrow=2, merge_cells=False,
                                sheet_name='reestr', index=False)
@@ -272,23 +281,21 @@ class RegistryDownloaderWork(RegistryDownloader):
         RegistryDownloader.__init__(self, id_reg=id_reg,
                                     columns=INVERT_REGISTRY_COLUMNS)
 
-    def get_row_with_revisions(self):
-        registry_revs = self.registry.loc[(self.registry['N_change'].astype(str) != '') & (
-            self.registry['change_type'] != 'удаление'), '_id']
-        if registry_revs.empty:
-            return False
+    def _get_row_with_revisions(self):
+        registry_revs = self.registry.loc[self.registry[
+            'change_type'] == 'изменение', '_id']
         return registry_revs
 
     def write_revisions_to_registry(self):
         '''
             добавляет ревизии (версии документов) в реестр
         '''
-        registry_revs = self.get_row_with_revisions()
-        if registry_revs:
+        registry_revs = self._get_row_with_revisions()
+        if not registry_revs.empty:
             for _id in registry_revs:
                 for rev in db.get_revisions_by_id(_id):
-                    df_rev = pd.DataFrame(rev, index=[0])
-                    self.registry.append(df_rev)
+                    self.registry = self.registry.append(
+                        rev, ignore_index=True)
 
 
 class RegistryDownloaderActual(RegistryDownloader):

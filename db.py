@@ -105,6 +105,6 @@ class DBConnCouch(DBConn):
                 т.к. 0 - последняя ревизия
             _id -- id документа
         '''
-        for i, rev in enumerate(self.cdb.revisions(_id)):
+        for i, rev in enumerate(self.conn.revisions(_id)):
             if i:
                 yield {k: v for k, v in rev.items()}
