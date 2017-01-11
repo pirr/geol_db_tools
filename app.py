@@ -133,48 +133,18 @@ def get_download():
 def download_regist(id_reg, wtype):
     selector = {'id_reg': {'$eq': id_reg}}
     docs = mango_query(cdb, **selector)
-    # db_cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev']
     df = pd.DataFrame(docs)
     print(len(df))
 
     if wtype == 'work':
-        cols = list(_REGISTRY_COLUMNS.keys())
-
-        df_revs = df.loc[(df['N_change'].astype(str) != '') & (
-            df['change_type'] != 'удаление'), '_id']
-
-        if not df_revs.empty:
-            print('revs!')
-
-            for _id in df_revs:
-                for i, rev in enumerate(cdb.revisions(_id)):
-                    if i:
-                        df_rev = pd.DataFrame(
-                            {k: v for k, v in rev.items()}, index=[0])
-                        df = df.append(df_rev, ignore_index=True)
-
+        registry_downloader = RegistryDownloaderWork(id_reg)
+        registry_downloader.write_revisions_to_registry()
     elif wtype == 'actual':
-        cols = list(_REGISTRY_COLUMNS.keys()) + \
-            ['_id', '_rev', 'id_reg', 'filename']
-
-    df_deleted = df.loc[
-        df['change_type'] == 'удаление', '_id']
-    df.loc[df['_id'].isin(df_deleted), 'actual'] = ''
-
-    df['rev_num'] = df['_rev'].str.split('-').str.get(0)
-    df.at[df['change_type'] == 'добавление', 'N_change'] = 1
-    df.at[df['change_type'] != 'добавление', 'N_change'] = df['rev_num'].apply(
-        lambda x: int(x) - 1 if int(x) > 1 else np.nan)
-    df.drop('rev_num', axis=1, inplace=True)
+        registry_downloader = RegistryDownloaderActual(id_reg)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
-
-    df = df[cols]
-    df.columns = [c if c in ('_id', '_rev', 'id_reg', 'filename') else _REGISTRY_COLUMNS[
-        c] for c in cols]
-    df.to_excel(writer, startrow=2, merge_cells=False,
-                sheet_name='reestr', index=False)
+    registry_downloader.write_to_excel(writer)
     writer.close()
     output.seek(0)
 
