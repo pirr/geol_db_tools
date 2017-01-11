@@ -16,9 +16,11 @@ from werkzeug.utils import secure_filename
 
 import forms
 from _help_fun import read_excel, flash_mess
-from setup import app, cdb, _REGISTRY_COLUMNS
+from setup import app, cdb
 from views import mango_query
-from registry import RegistryFormatterNew, RegistryFormatterUpdate, RegistryExc
+from registry import (RegistryFormatterNew, RegistryFormatterUpdate,
+                      RegistryDownloaderWork, RegistryDownloaderActual,
+                      RegistryExc)
 from db import DBConnCouch
 
 
@@ -86,10 +88,10 @@ def import_file(filename, type):
     '''
     def saver(reg, id_reg):
         if not reg.empty:
-        reg['id_reg'] = id_reg
-        reg['filename'] = filename
-        ddb.bulk_save(reg.to_dict(orient='records'))
-        ddb.write_reg_info()
+            reg['id_reg'] = id_reg
+            reg['filename'] = filename
+            ddb.bulk_save(reg.to_dict(orient='records'))
+            ddb.write_reg_info()
 
     try:
         data = read_excel(filename)
