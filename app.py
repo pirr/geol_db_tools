@@ -37,9 +37,12 @@ def index():
 def upload_file(type):
     print('upload')
     imp.reload(forms)
+    
     if type == 'new':
+        title = 'Загрузить новый реестр'
         form = forms.NewUploadForm()
     elif type == 'actual':
+        title = 'Актуализировать реестр'
         form = forms.ActualUploadForm()
 
     if form.validate_on_submit():
@@ -55,11 +58,6 @@ def upload_file(type):
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
     filename = None
-
-    if type == 'new':
-        title = 'Загрузить новый реестр'
-    else:
-        title = 'Актуализировать реестр'
 
     return render_template('upload_form.html',
                            form=form,
