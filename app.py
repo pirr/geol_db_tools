@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 from io import BytesIO
 from shutil import move
+from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -25,6 +26,8 @@ from db import DBConnCouch
 
 
 # from logger import log_to_file
+FILTERED_FIELDS = OrderedDict(
+    [('norm_pi', 'ПИ'), ('geol_type_obj', 'Вид объекта')])
 ddb = DBConnCouch()
 
 
@@ -37,7 +40,7 @@ def index():
 def upload_file(type):
     print('upload')
     imp.reload(forms)
-    
+
     if type == 'new':
         title = 'Загрузить новый реестр'
         form = forms.NewUploadForm()
@@ -163,6 +166,25 @@ def regs_list():
             all_regs.append((id_reg, regs_info[id_reg]))
     all_regs.sort(key=lambda x: x[0])
     return render_template('all_dbs.html', dbs=all_regs)
+
+
+@app.route('/get_filters', methods=['GET', 'POST'])
+def filters():
+    filters_dict = OrderedDict()
+    '''
+        получение значений из БД для составления фильтров
+    '''
+    # получить из БД значения
+    for field, field_name in FILTERED_FIELDS.items():
+        #
+        # print([doc for doc in ddb.conn][0].items())
+        filters_dict[field_name] = sorted(list({doc['doc'][field] for doc in ddb.conn.view(
+            '_all_docs', include_docs=True) if field in doc['doc']}))
+        print(len(filters_dict[field_name]))
+    # отфильтровать значения в соответсвии с запросом
+    # записать значения фильтра в хэшированный список фильтров (словарь)
+    # вернуть в темплейт список фильтров
+    return render_template('filters.html', filters=filters_dict)
 
 
 @app.route('/all_rows')

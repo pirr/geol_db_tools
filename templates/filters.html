@@ -1,0 +1,8 @@
+<h4>Фильтры</h4>
+{% for filter_name, values in filters.items() %}
+	<span>{{ filter_name }}</span>
+	<ul>
+	{% for value in values %}
+		<li>{{ value }}</li>
+	{% endfor %}
+{% endfor %}
