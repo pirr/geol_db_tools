@@ -161,8 +161,7 @@ def regs_list():
     for id_reg in regs_info:
         if id_reg not in ('_id', '_rev'):
             all_regs.append((id_reg, regs_info[id_reg]))
-    # all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
-
+    all_regs.sort(key=lambda x: x[0])
     return render_template('all_dbs.html', dbs=all_regs)
 
 
