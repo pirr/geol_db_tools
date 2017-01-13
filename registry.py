@@ -164,6 +164,24 @@ class RegistryFormatterNew(RegistryFormatter):
         RegistryFormatter.__init__(self,
                                    registry_df=registry_df,
                                    registry_cols_dict=REGISTRY_COLUMNS)
+        self.dict_cols = ('doc_type', 'organ_regs', 'fed_distr',
+                          'subj_distr', 'adm_distr', 'geol_type_obj',
+                          'gover_type_pi', 'norm_pi', 'gbz_pi',
+                          'isnedra_pi', 'probe_doc_type', 'probe_organ_subj')
+        self.date_cols = ('doc_date', 'probe_doc_date')
+
+    def dict_cols_clear(self, column):
+        '''
+            проверка колонки со справочником
+            column -- название колонки
+        '''
+        pass
+
+    def date_cols_clear(self, column):
+        '''
+            проверка колонки на содержание только даты
+        '''
+        pass
 
 
 class RegistryFormatterUpdate(RegistryFormatter):
