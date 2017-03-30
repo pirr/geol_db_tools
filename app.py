@@ -25,6 +25,7 @@ from registry import (RegistryFormatterNew, RegistryFormatterUpdate,
 from db import DBConnCouch
 
 
+app = app
 # from logger import log_to_file
 FILTERED_FIELDS = OrderedDict(
     [('norm_pi', 'ПИ'), ('geol_type_obj', 'Вид объекта')])
@@ -72,13 +73,26 @@ def upload_file(type):
 @app.route('/uploads/<filename>-<type>')
 def uploads_file(filename, type):
     send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    filename_list = filename.split('.')
+    upload_filename = '{}_{}.{}'.format(filename_list[0], datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), filename_list[-1])
+    move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
+         os.path.join(app.config['UPLOAD_FOLDER'], upload_filename))
 
-    if type == 'actual':
-        move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
-             os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    # if type == 'actual':
         # filename = session['reg_name'] + '.xls'
 
-    return redirect(url_for('import_file', filename=filename, type=type))
+    return redirect(url_for('import_file', filename=upload_filename, type=type))
+
+#@app.route('/uploads/<filename>-<type>')
+#def uploads_file(filename, type):
+#    send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+#
+#    if type == 'actual':
+#        move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
+#             os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # filename = session['reg_name'] + '.xls'
+
+    #return redirect(url_for('import_file', filename=filename, type=type))
 
 
 @app.route('/import/<filename>-<type>')
@@ -127,6 +141,7 @@ def import_file(filename, type):
 
 @app.route('/get_download', methods=['GET', 'POST'])
 def get_download():
+    print(request.args)
     wtype = request.args.get('wtype')
     id_reg = request.args.get('id_reg')
     return redirect(url_for('download_regist', id_reg=id_reg, wtype=wtype))
@@ -200,4 +215,4 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, threaded=True)
+    app.run(host="0.0.0.0")

@@ -40,6 +40,7 @@ var downloadDB = function(button) {
 	} else {
 		wtype = 'work'
 	}
+	console.log(id_reg+wtype)
 	// var OSName="pass";
 	// if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
 	$.ajax({
