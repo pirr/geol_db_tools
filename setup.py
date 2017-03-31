@@ -18,7 +18,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
 app.secret_key = 'super secret key'
 app.config['SESSION_TYPE'] = 'filesystem'
-app.config['WTF_CSRF_ENABLED'] = False
+app.config['WTF_CSRF_ENABLED'] = True
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.debug = True
 
@@ -32,4 +32,7 @@ except Exception as e:
 
 if 'regs_info' not in cdb:
     cdb.save({'_id': 'regs_info'})
+
+if 'users' not in cdb:
+    cdb.save({'_id': 'users'})
     

@@ -3,7 +3,7 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import SelectField, StringField
+from wtforms import SelectField, StringField, PasswordField, validators
 
 from setup import cdb
 
@@ -88,3 +88,17 @@ class ActualUploadForm(FlaskForm):
         self.regs_select.errors = tuple(self.regs_select.errors)
 
         return True
+
+class RegistrationForm(FlaskForm):
+    username = StringField('Имя пользователя', [validators.Length(min=4, max=25)])
+    email = StringField('Email', [validators.Length(min=6, max=35)])
+    password = PasswordField('Пароль', [
+        validators.DataRequired(),
+        validators.EqualTo('confirm', message='Пароль должен совпадать')
+    ])
+    confirm = PasswordField('Повторить пароль')
+
+
+class LoginForm(FlaskForm):
+    username = StringField('Имя пользователя', [validators.DataRequired('Введите имя')])
+    password = PasswordField('Пароль', [validators.DataRequired('Ввведите пароль')])

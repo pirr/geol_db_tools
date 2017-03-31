@@ -7,6 +7,7 @@ from datetime import datetime
 from io import BytesIO
 from shutil import move
 from collections import OrderedDict
+from functools import wraps
 
 import numpy as np
 import pandas as pd
@@ -14,6 +15,7 @@ from flask import (request, redirect, url_for,
                    render_template, send_from_directory,
                    send_file, session)
 from werkzeug.utils import secure_filename
+
 
 import forms
 from _help_fun import read_excel, flash_mess
@@ -31,12 +33,23 @@ FILTERED_FIELDS = OrderedDict(
 ddb = DBConnCouch()
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            flash_mess('Необходимо войти в систему')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
 
 @app.route('/upload/<type>', methods=['POST', 'GET'])
+@login_required
 def upload_file(type):
     print('upload')
     imp.reload(forms)
@@ -70,6 +83,7 @@ def upload_file(type):
 
 
 @app.route('/uploads/<filename>-<type>')
+@login_required
 def uploads_file(filename, type):
     send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     filename_list = filename.split('.')
@@ -81,6 +95,7 @@ def uploads_file(filename, type):
 
 
 @app.route('/import/<filename>-<type>')
+@login_required
 def import_file(filename, type):
     '''
     читаем реестр из excel файла
@@ -190,8 +205,48 @@ def filters():
 @app.route('/all_rows')
 def all_rows():
     rows = cdb.view('_all_docs', include_docs=True)
-
     return render_template('rows.html', rows=rows)
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = forms.RegistrationForm(request.form)
+    if request.method == 'POST' and form.validate():
+        user = (form.username.data,
+                form.email.data,
+                form.password.data)
+        ddb.add_user(*user)
+        flash_mess('Введит зарегистрированые имя и пароль')
+        return redirect(url_for('login'))
+    return render_template('register.html', form=form)
+
+users = {'foo': {'password': 'secret'}}
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = forms.LoginForm()
+    print('login method!')
+    if form.validate_on_submit():
+        print('Login!')
+        username = form.username.data
+        if (username not in users) or (form.password.data != users[username]['password']):
+            flash_mess('Неверное имя пользователя или пароль')
+            return redirect(url_for('login'))
+        session['username'] = username
+
+        return redirect(url_for('upload_file', type='new'))
+
+    print(form.errors)
+
+    return render_template('login_form.html', form=form)
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 
 @app.errorhandler(404)

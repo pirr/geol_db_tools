@@ -108,3 +108,10 @@ class DBConnCouch(DBConn):
         for i, rev in enumerate(self.conn.revisions(_id)):
             if i:
                 yield {k: v for k, v in rev.items()}
+
+    def add_user(self, name, email, password):
+        t = self.get_time_now()
+        user_dict = {name: {'created': t,
+                            'email': email,
+                            'password': password}}
+        self.save('users', user_dict)
