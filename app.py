@@ -26,7 +26,6 @@ from db import DBConnCouch
 
 
 app = app
-# from logger import log_to_file
 FILTERED_FIELDS = OrderedDict(
     [('norm_pi', 'ПИ'), ('geol_type_obj', 'Вид объекта')])
 ddb = DBConnCouch()
@@ -78,21 +77,7 @@ def uploads_file(filename, type):
     move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
          os.path.join(app.config['UPLOAD_FOLDER'], upload_filename))
 
-    # if type == 'actual':
-        # filename = session['reg_name'] + '.xls'
-
     return redirect(url_for('import_file', filename=upload_filename, type=type))
-
-#@app.route('/uploads/<filename>-<type>')
-#def uploads_file(filename, type):
-#    send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-#
-#    if type == 'actual':
-#        move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
-#             os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # filename = session['reg_name'] + '.xls'
-
-    #return redirect(url_for('import_file', filename=filename, type=type))
 
 
 @app.route('/import/<filename>-<type>')
