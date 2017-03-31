@@ -1,7 +1,6 @@
 #-*- coding: utf-8 -*-
 
 
-from collections import OrderedDict
 import os
 import couchdb
 from flask import Flask
@@ -12,7 +11,7 @@ UPLOAD_FOLDER = os.path.abspath('uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-ALLOWED_EXTENSIONS = set(['xls', 'xlsx'])
+ALLOWED_EXTENSIONS = {'xls', 'xlsx'}
 COUCH_URL = 'http://localhost:5984'
 
 app = Flask(__name__)
