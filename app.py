@@ -144,6 +144,7 @@ def get_download():
     print(request.args)
     wtype = request.args.get('wtype')
     id_reg = request.args.get('id_reg')
+
     return redirect(url_for('download_regist', id_reg=id_reg, wtype=wtype))
 
 
@@ -151,8 +152,6 @@ def get_download():
 def download_regist(id_reg, wtype):
     selector = {'id_reg': {'$eq': id_reg}}
     docs = mango_query(cdb, **selector)
-    df = pd.DataFrame(docs)
-    print(len(df))
 
     if wtype == 'work':
         registry_downloader = RegistryDownloaderWork(id_reg)
@@ -176,10 +175,13 @@ def download_regist(id_reg, wtype):
 def regs_list():
     regs_info = cdb['regs_info']
     all_regs = []
+
     for id_reg in regs_info:
         if id_reg not in ('_id', '_rev'):
             all_regs.append((id_reg, regs_info[id_reg]))
+
     all_regs.sort(key=lambda x: x[0])
+
     return render_template('all_dbs.html', dbs=all_regs)
 
 
@@ -205,12 +207,14 @@ def filters():
 @app.route('/all_rows')
 def all_rows():
     rows = cdb.view('_all_docs', include_docs=True)
+
     return render_template('rows.html', rows=rows)
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = forms.RegistrationForm(request.form)
+
     if request.method == 'POST' and form.validate():
         user = (form.username.data,
                 form.email.data,
@@ -218,6 +222,7 @@ def register():
         ddb.add_user(*user)
         flash_mess('Введит зарегистрированые имя и пароль')
         return redirect(url_for('login'))
+
     return render_template('register.html', form=form)
 
 users = {'foo': {'password': 'secret'}}
@@ -226,18 +231,15 @@ users = {'foo': {'password': 'secret'}}
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = forms.LoginForm()
-    print('login method!')
+
     if form.validate_on_submit():
-        print('Login!')
         username = form.username.data
         if (username not in users) or (form.password.data != users[username]['password']):
             flash_mess('Неверное имя пользователя или пароль')
             return redirect(url_for('login'))
+
         session['username'] = username
-
         return redirect(url_for('upload_file', type='new'))
-
-    print(form.errors)
 
     return render_template('login_form.html', form=form)
 
@@ -246,11 +248,13 @@ def login():
 @login_required
 def logout():
     session.clear()
+
     return redirect(url_for('login'))
 
 
 @app.errorhandler(404)
 def page_not_found(e):
+
     return render_template('404.html'), 404
 
 
