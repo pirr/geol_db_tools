@@ -12,7 +12,8 @@
 		</ul>
 	{% endif %}
 	{% endwith %}
-	<form id="upload_form" enctype=multipart/form-data class="form-horizontal" method="POST" action="{{ url_for('upload_file', type=type) }}" enctype=multipart/form-data>
+	<form id="upload_form" class="form-horizontal" method="POST" action="{{ url_for('upload_file', type=type) }}" enctype=multipart/form-data>
+        {{ form.csrf_token }}
 	    {{ render_field(form.file) }}
 		{% if type=='actual' %}
 			{{ render_field(form.regs_select) }}
