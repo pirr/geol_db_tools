@@ -125,7 +125,6 @@ def import_file(filename, type):
             reg_format.split_on_new_update()
             registries = reg_format.registry
             ddb.get_reg_id_info(id_reg=session['id_reg'])
-            print(registries)
             for reg in registries:
                 saver(reg, session['id_reg'])
 
@@ -150,8 +149,6 @@ def get_download():
 
 @app.route('/download/<id_reg>-<wtype>', methods=['GET', 'POST'])
 def download_regist(id_reg, wtype):
-    selector = {'id_reg': {'$eq': id_reg}}
-    docs = mango_query(cdb, **selector)
 
     if wtype == 'work':
         registry_downloader = RegistryDownloaderWork(id_reg)
