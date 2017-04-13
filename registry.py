@@ -12,6 +12,9 @@ from _help_fun import flash_mess, message_former_from
 from db import DBConnCouch
 
 db = DBConnCouch()
+REESTR_SHEET_NAME = u'Реестр'
+SKIP_ROWS = 1
+
 
 REGISTRY_COLUMNS = OrderedDict([(u'№ строки', 'N'),
                                 (u'Актуальность строки', 'actual'),
@@ -80,6 +83,23 @@ INVERT_REGISTRY_COLUMNS = OrderedDict(
 
 actual_cols = ('_id', '_rev', 'id_reg', 'filename')
 
+def read_excel(filename):
+    try:
+        f = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+
+    except Exception as e:
+        flash_mess('''Возникли проблемы на стороне сервера обратитесь к администратору''')
+        raise e
+    try:
+        df = pd.read_excel(f, sheetname=REESTR_SHEET_NAME, skiprows=SKIP_ROWS,
+                           converters={u'Дата регистрации': str, u'Дата': str, u'№ объекта в документе регистрации': str})
+    except Exception as e:
+        flash_mess('''Проблемы при чтении файла. Возможно в файле {} нет листа {}'''.format(
+            filename, REESTR_SHEET_NAME))
+        os.remove(f)
+        raise e
+
+    return df
 
 class RegistryExc(Exception):
     pass
@@ -203,7 +223,7 @@ class RegistryFormatterUpdate(RegistryFormatter):
     def __clear_db_duplicates(self):
         none_duplicates = self.__get_none_duplicates()
         print('len none_duplicates', len(none_duplicates))
-        db_rows = RegistryDB.get_rows_by_id(self.id_reg)
+        db_rows = RegistryDB(self.id_reg).get_registry_df
         print('len db rows:', len(db_rows))
         db_rows = db_rows.append(none_duplicates)
         db_rows.drop(['N_change', 'actual', 'id_reg', 'filename'],
@@ -263,7 +283,7 @@ class RegistryDownloader:
     def __init__(self, id_reg, columns):
         self.id_reg = id_reg
         self.cols = columns
-        self.registry = RegistryDB.get_rows_by_id(self.id_reg)
+        self.registry = RegistryDB(self.id_reg).get_registry_df
 
     def _deleted_row_handler(self):
         registry_del_rows = self.registry.loc[
@@ -287,10 +307,9 @@ class RegistryDownloader:
         self._rev_num_field_former()
         self._add_type_field_former()
         self.registry = self.registry[list(self.cols.keys())]
-        self.registry.columns = RegistryDB.update_column_names(
-            self.cols, self.registry)
-        self.registry.to_excel(writer, startrow=2, merge_cells=False,
-                               sheet_name='reestr', index=False)
+        self.registry.columns = self.cols.values()
+        self.registry.to_excel(writer, startrow=SKIP_ROWS, merge_cells=False,
+                               sheet_name=REESTR_SHEET_NAME, index=False)
 
 
 class RegistryDownloaderWork(RegistryDownloader):

@@ -18,12 +18,12 @@ from werkzeug.utils import secure_filename
 
 
 import forms
-from _help_fun import read_excel, flash_mess
+from _help_fun import flash_mess
 from setup import app, cdb
 from views import mango_query
 from registry import (RegistryFormatterNew, RegistryFormatterUpdate,
                       RegistryDownloaderWork, RegistryDownloaderActual,
-                      RegistryExc)
+                      RegistryExc, read_excel, delete_registry)
 from db import DBConnCouch
 
 
