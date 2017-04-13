@@ -3,7 +3,7 @@
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import SelectField, StringField
+from wtforms import SelectField, StringField, PasswordField, validators
 
 from setup import cdb
 
@@ -89,68 +89,16 @@ class ActualUploadForm(FlaskForm):
 
         return True
 
-
-# class RequestFormIzuch(FlaskForm):
-#     authors_filter = StringField('Авторы документа')
-#     text = StringField('Текст')
-
-
-# class UserForm(FlaskForm):
-#     email = StringField('Email', [validators.Length(min=6, max=35)])
-#     password = PasswordField('Пароль', [
-#         validators.DataRequired(message='Введите пароль'),
-#         validators.EqualTo('confirm',
-#                            message='Пароль должен совпадать')
-#     ])
-#     confirm = PasswordField('Повторить пароль')
+class RegistrationForm(FlaskForm):
+    username = StringField('Имя пользователя', [validators.Length(min=4, max=25)])
+    email = StringField('Email', [validators.Length(min=6, max=35)])
+    password = PasswordField('Пароль', [
+        validators.DataRequired(),
+        validators.EqualTo('confirm', message='Пароль должен совпадать')
+    ])
+    confirm = PasswordField('Повторить пароль')
 
 
-# class RegisterForm(UserForm):
-
-#     def validate(self):
-#         rv = FlaskForm.validate(self)
-#         if not rv:
-#             return False
-#         user = User.query.filter_by(email=self.email.data).first()
-
-#         if user is not None:
-#             self.email.errors.append('Этот адрес уже зарегестрирован')
-#             return False
-
-#         return True
-
-
-# class EditForm(UserForm):
-
-#     def validate(self):
-#         rv = FlaskForm.validate(self)
-#         if not rv:
-#             return False
-
-#         # проверка на совпадение email другого пользователя
-#         check_user = User.query.filter_by(email=self.email.data).first()
-#         if check_user and check_user.id != session['user']:
-#             self.email.errors.append('Этот адрес уже зарегестрирован')
-#             return False
-
-#         return True
-
-
-# class LoginForm(FlaskForm):
-#     email = StringField('Email', [validators.DataRequired(
-#         message='Введите электронный адрес')])
-#     password = PasswordField(
-#         'Пароль', [validators.DataRequired(message='Введите пароль')])
-
-#     def validate(self):
-#         rv = FlaskForm.validate(self)
-#         if not rv:
-#             return False
-
-#         user = User.query.filter_by(
-#             email=self.email.data, password=self.password.data).first()
-#         if user is None:
-#             self.email.errors.append('Неверный адрес или пароль')
-#             return False
-
-#         return True
+class LoginForm(FlaskForm):
+    username = StringField('Имя пользователя', [validators.DataRequired('Введите имя')])
+    password = PasswordField('Пароль', [validators.DataRequired('Ввведите пароль')])

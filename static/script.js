@@ -33,13 +33,14 @@ $(function(){
 var downloadDB = function(button) {
 	console.log(button.id)
 	// $.get('/clear_session', {param: 'file_size'});
-	reg_name = button.id
+	id_reg = button.id
 	actualCheck = document.getElementById('actualCheckbox')
 	if (actualCheck.checked) {
-		withRevs = 'no'
+		wtype = 'actual'
 	} else {
-		withRevs = 'yes'
+		wtype = 'work'
 	}
+	console.log(id_reg+wtype)
 	// var OSName="pass";
 	// if (navigator.appVersion.indexOf("Win")!=-1) OSName="Windows";
 	$.ajax({
@@ -47,7 +48,7 @@ var downloadDB = function(button) {
 		headers: { "cache-control": "no-cache" },
 		url: '/get_download',
 		cache: false,
-		data: {reg_name: reg_name, withRevs: withRevs},
+		data: {id_reg: id_reg, wtype: wtype},
 		// xhr: function() {
 		// 	var xhr = new XMLHttpRequest();
 
@@ -67,17 +68,17 @@ var downloadDB = function(button) {
   //       },
         
         error: function() {
-        	$('#loading_'+reg_name).html('Проблема при загрузке файла')
+        	$('#loading_'+id_reg).html('Проблема при загрузке файла')
         },
 		
 		beforeSend: function() {
-	        $('#loading_'+reg_name).show();
-			$('#loading_'+reg_name).html('Файл формируется')
+	        $('#loading_'+id_reg).show();
+			$('#loading_'+id_reg).html('Файл формируется')
 	    },
 	   
 		success: function() {
-			$('#loading_'+reg_name).html('Файл загружается')
-			window.location = '/download/'+ reg_name + '-' + withRevs
+			$('#loading_'+id_reg).html('Файл загружается')
+			window.location = '/download/'+ id_reg + '-' + wtype
 			// $.get('/clear_session', {param: 'file_size'})
 		}
 	})

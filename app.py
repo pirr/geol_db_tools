@@ -6,21 +6,41 @@ import os
 from datetime import datetime
 from io import BytesIO
 from shutil import move
+from collections import OrderedDict
+from functools import wraps
 
-import numpy as np
+import sys
 import pandas as pd
 from flask import (request, redirect, url_for,
                    render_template, send_from_directory,
                    send_file, session)
 from werkzeug.utils import secure_filename
 
+
 import forms
-from _help_fun import read_excel
-from setup import app, cdb, _REGISTRY_COLUMNS
+from _help_fun import flash_mess
+from setup import app, cdb
 from views import mango_query
+from registry import (RegistryFormatterNew, RegistryFormatterUpdate,
+                      RegistryDownloaderWork, RegistryDownloaderActual,
+                      RegistryExc, read_excel, delete_registry)
+from db import DBConnCouch
 
 
-# from logger import log_to_file
+app = app
+FILTERED_FIELDS = OrderedDict(
+    [('norm_pi', 'ПИ'), ('geol_type_obj', 'Вид объекта')])
+ddb = DBConnCouch()
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            flash_mess('Необходимо войти в систему')
+            return redirect(url_for('login', next=request.url))
+        return f(*args, **kwargs)
+    return decorated_function
 
 
 @app.route('/')
@@ -28,13 +48,19 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/upload/<type>', methods=['GET', 'POST'])
+@app.route('/upload/<type>', methods=['POST', 'GET'])
+@login_required
 def upload_file(type):
+    print('upload')
     imp.reload(forms)
-    if type == 'actual':
-        form = forms.ActualUploadForm()
-    else:
+
+    if type == 'new':
+        title = 'Загрузить новый реестр'
         form = forms.NewUploadForm()
+    elif type == 'actual':
+        title = 'Актуализировать реестр'
+        form = forms.ActualUploadForm()
+
     if form.validate_on_submit():
         filename = secure_filename(form.file.data.filename)
         form.file.data.save(os.path.join(
@@ -42,17 +68,12 @@ def upload_file(type):
 
         if type == 'new':
             session['reg_name'] = form.reg_name.data
-        else:
+        elif type == 'actual':
             session['id_reg'] = form.regs_select.data
 
         return redirect(url_for('uploads_file', filename=filename, type=type))
 
     filename = None
-
-    if type == 'new':
-        title = 'Загрузить новый реестр'
-    else:
-        title = 'Актуализировать реестр'
 
     return render_template('upload_form.html',
                            form=form,
@@ -62,142 +83,130 @@ def upload_file(type):
 
 
 @app.route('/uploads/<filename>-<type>')
+@login_required
 def uploads_file(filename, type):
     send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    filename_list = filename.split('.')
+    upload_filename = '{}_{}.{}'.format(filename_list[0], datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), filename_list[-1])
+    move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
+         os.path.join(app.config['UPLOAD_FOLDER'], upload_filename))
 
-    if type == 'actual':
-        move(os.path.join(app.config['UPLOAD_FOLDER'], filename),
-             os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        # filename = session['reg_name'] + '.xls'
-
-    return redirect(url_for('import_file', filename=filename, type=type))
+    return redirect(url_for('import_file', filename=upload_filename, type=type))
 
 
 @app.route('/import/<filename>-<type>')
+@login_required
 def import_file(filename, type):
+    '''
+    читаем реестр из excel файла
+    проверяем реестр на ошибки, форматируем и сохраняем в бд
+    '''
+    def saver(reg, id_reg):
+        if not reg.empty:
+            reg['id_reg'] = id_reg
+            reg['filename'] = filename
+            ddb.bulk_save(reg.to_dict(orient='records'))
+            ddb.write_reg_info()
+
     try:
-        regs_info = cdb['regs_info']
-        t = datetime.now().strftime("%Y-%m-%d_%H-%M")
-        dfs = []
+        data = read_excel(filename)
 
-        if type == 'actual':
-            data = read_excel(filename, actual=True)
-            
-            df_new_rows = data[pd.isnull(data['_id'])]
-            df_new_rows.drop(['_id', '_rev'], axis=1, inplace=True)
-            if not df_new_rows.empty:
-                dfs.append(df_new_rows)
-            df_updated_rows = data[~pd.isnull(data['_id'])]
+        if type == 'new':
+            reg_format = RegistryFormatterNew(data)
+            reg_format.format()
+            registry = reg_format.registry
+            id_reg, _ = ddb.get_reg_id_info(reg_name=session['reg_name'])
+            saver(registry, id_reg)
 
-            if not df_updated_rows.empty:
-                dfs.append(df_updated_rows)
-            id_reg = session['id_reg']
-            regs_info[id_reg]['modified'] = t
+        elif type == 'actual':
+            reg_format = RegistryFormatterUpdate(
+                data, id_reg=session['id_reg'])
+            reg_format.format_actual()
+            reg_format.split_on_new_update()
+            registries = reg_format.registry
+            ddb.get_reg_id_info(id_reg=session['id_reg'])
+            for reg in registries:
+                saver(reg, session['id_reg'])
 
-        else:
-            data = read_excel(filename, actual=False)
-            dfs.append(data)
-            reg_ids = [int(id) for id in list(regs_info) if id not in ('_id', '_rev')]
-            if reg_ids:
-                id_reg = str(max(reg_ids) + 1)
-            else:
-                id_reg = '1'
-            regs_info[id_reg] = {'created': t,
-                                 'modified': '',
-                                 'reg_name': session['reg_name']}
-
-        if dfs:
-            for df in dfs:
-                try:
-                    df.fillna('', inplace=True)
-                    df['id_reg'] = id_reg
-                    df.replace('nan', '', inplace=True)
-                    data_dict = df.to_dict(orient='records')
-                    res = cdb.update(data_dict)
-                except Exception as e:
-                    raise e
-
-            cdb['regs_info'] = regs_info
+    except RegistryExc as e:
+        return redirect(url_for('upload_file', type=type))
 
     except Exception as e:
-        # os.remove(filename)
-        # return redirect(url_for('upload_file', type=type))
-        raise e
+        print(e, file=sys.stderr)
+        flash_mess('Ошибка. Обратитесь к администратору.')
+        return redirect(url_for('upload_file', type=type))
 
     return redirect(url_for('regs_list'))
 
 
-@app.route('/download/<id_reg>-<with_revs>', methods=['GET', 'POST'])
-def download_regist(id_reg, with_revs):
-    selector = {'id_reg': {'$eq': id_reg}}
-    docs = mango_query(cdb, **selector)
-    # db_cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev']
-    df = pd.DataFrame(docs)
-    print(len(df))
+@app.route('/get_download', methods=['GET', 'POST'])
+def get_download():
+    print(request.args)
+    wtype = request.args.get('wtype')
+    id_reg = request.args.get('id_reg')
 
-    if with_revs == 'yes':
-        cols = list(_REGISTRY_COLUMNS.keys())
+    return redirect(url_for('download_regist', id_reg=id_reg, wtype=wtype))
 
-        df_revs = df.loc[(df['N_change'].astype(str) != '') & (
-            df['change_type'] != 'удаление'), '_id']
 
-        if not df_revs.empty:
-            print('revs!')
+@app.route('/download/<id_reg>-<wtype>', methods=['GET', 'POST'])
+def download_regist(id_reg, wtype):
 
-            for _id in df_revs:
-                for i, rev in enumerate(cdb.revisions(_id)):
-                    if i:
-                        df_rev = pd.DataFrame(
-                            {k: v for k, v in rev.items()}, index=[0])
-                        df = df.append(df_rev, ignore_index=True)
-
-    else:
-        cols = list(_REGISTRY_COLUMNS.keys()) + ['_id', '_rev', 'id_reg', 'filename']
-
-    df_deleted = df.loc[
-        df['change_type'] == 'удаление', '_id']
-    df.loc[df['_id'].isin(df_deleted), 'actual'] = ''
-
-    df['rev_num'] = df['_rev'].str.split('-').str.get(0)
-    df.at[df['change_type'] == 'добавление', 'N_change'] = 1
-    df.at[df['change_type'] != 'добавление', 'N_change'] = df['rev_num'].apply(
-        lambda x: int(x) - 1 if int(x) > 1 else np.nan)
-    df.drop('rev_num', axis=1, inplace=True)
+    if wtype == 'work':
+        registry_downloader = RegistryDownloaderWork(id_reg)
+        registry_downloader.write_revisions_to_registry()
+    elif wtype == 'actual':
+        registry_downloader = RegistryDownloaderActual(id_reg)
 
     output = BytesIO()
     writer = pd.ExcelWriter(output)
-
-    df = df[cols]
-    df.columns = [c if c in ('_id', '_rev', 'id_reg', 'filename') else _REGISTRY_COLUMNS[
-        c] for c in cols]
-    df.to_excel(writer, startrow=2, merge_cells=False,
-                sheet_name='reestr', index=False)
+    registry_downloader.write_to_excel(writer)
     writer.close()
     output.seek(0)
 
     return send_file(output,
-                     attachment_filename="{}.xls".format('reestr_'+id_reg),
+                     attachment_filename="{}.xls".format('reestr_' + id_reg),
                      as_attachment=True
                      )
-
-
-@app.route('/get_download', methods=['GET', 'POST'])
-def get_download():
-    with_revs = request.args.get('withRevs')
-    id_reg = request.args.get('reg_name')
-    return redirect(url_for('download_regist', id_reg=id_reg, with_revs=with_revs))
 
 
 @app.route('/regs')
 def regs_list():
     regs_info = cdb['regs_info']
     all_regs = []
+
     for id_reg in regs_info:
         if id_reg not in ('_id', '_rev'):
             all_regs.append((id_reg, regs_info[id_reg]))
-    # all_regs = [reg for reg in cdb['regs_info'] if reg not in ('_id', '_rev')]
+
+    all_regs.sort(key=lambda x: x[0])
 
     return render_template('all_dbs.html', dbs=all_regs)
+
+
+@app.route('/regs/delete-<id_reg>', methods=['GET', 'POST'])
+@login_required
+def delete_reg(id_reg):
+    delete_registry(id_reg)
+    return redirect(url_for('regs_list'))
+
+
+@app.route('/get_filters', methods=['GET', 'POST'])
+def filters():
+    filters_dict = OrderedDict()
+    '''
+        получение значений из БД для составления фильтров
+    '''
+    # получить из БД значения
+    for field, field_name in FILTERED_FIELDS.items():
+        #
+        # print([doc for doc in ddb.conn][0].items())
+        filters_dict[field_name] = sorted(list({doc['doc'][field] for doc in ddb.conn.view(
+            '_all_docs', include_docs=True) if field in doc['doc']}))
+        print(len(filters_dict[field_name]))
+    # отфильтровать значения в соответсвии с запросом
+    # записать значения фильтра в хэшированный список фильтров (словарь)
+    # вернуть в темплейт список фильтров
+    return render_template('filters.html', filters=filters_dict)
 
 
 @app.route('/all_rows')
@@ -207,9 +216,52 @@ def all_rows():
     return render_template('rows.html', rows=rows)
 
 
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = forms.RegistrationForm(request.form)
+
+    if request.method == 'POST' and form.validate():
+        user = (form.username.data,
+                form.email.data,
+                form.password.data)
+        ddb.add_user(*user)
+        flash_mess('Введит зарегистрированые имя и пароль')
+        return redirect(url_for('login'))
+
+    return render_template('register.html', form=form)
+
+users = {'foo': {'password': 'secret'}}
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    form = forms.LoginForm()
+
+    if form.validate_on_submit():
+        username = form.username.data
+        if (username not in users) or (form.password.data != users[username]['password']):
+            flash_mess('Неверное имя пользователя или пароль')
+            return redirect(url_for('login'))
+
+        session['username'] = username
+        return redirect(url_for('upload_file', type='new'))
+
+    return render_template('login_form.html', form=form)
+
+
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+    session.clear()
+
+    return redirect(url_for('login'))
+
+
 @app.errorhandler(404)
 def page_not_found(e):
+
     return render_template('404.html'), 404
 
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, threaded=True)
+    app.run(host="0.0.0.0")

@@ -1,0 +1,13 @@
+<h4>Фильтры</h4>
+{% for filter_name, values in filters.items() %}
+	<span>{{ filter_name }}</span>
+	<ul>
+	{% for value in values %}
+		<li>{{ value }}
+			<label class="check_label">
+				<input type="checkbox" class="check_input">
+			</label>
+		</li>
+	{% endfor %}
+	</ul>
+{% endfor %}

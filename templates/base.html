@@ -32,8 +32,14 @@
                             <li><a href="/upload/actual">Загрузка актуализированных реестров</a></li>
                         {% endblock %}
                     </ul>
-                    <ul class="nav navbar-nav navbar-right"></ul>
-                        {% block rightnav %}{% endblock %}
+                    <ul class="nav navbar-nav navbar-right">
+                        {% block rightnav %}
+                            {% if 'username' in session %}
+                                <li>Пользователь: {{ session['username'] }}</li>
+                                <li><a href="/logout">Выйти</a></li>
+                            {% endif %}
+                        {% endblock %}
+                    </ul>
                 </div>
             </div>
         </nav>
