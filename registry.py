@@ -109,14 +109,20 @@ class RegistryDB:
     '''
         коннектор между базой данных и реестром
     '''
-    # получение строк из БД
-    def get_rows_by_id(id_reg):
-        db_docs = db.get_selected(**{'id_reg': {'$eq': id_reg}})
-        return pd.DataFrame(db_docs)
+    def __init__(self, id_reg):
+        self.id_reg = id_reg
+        self.registry_dict = db.get_selected(**{'id_reg': {'$eq': self.id_reg}})
 
-    # обновление названий колонок
-    def update_column_names(cols, registry):
-        return [cols[c] for c in registry.columns]
+    @property
+    def get_registry_df(self):
+        return pd.DataFrame(self.registry_dict)
+
+    @property
+    def delete(self):
+        registry = self.get_registry_df
+        registry['_deleted'] = True
+        db.bulk_save(registry[['_id', '_rev', '_deleted']].to_dict(orient='records'))
+        # db.bulk_delete(self.registry_dict)
 
 
 class RegistryFormatter:
