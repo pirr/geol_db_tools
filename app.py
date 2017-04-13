@@ -9,7 +9,7 @@ from shutil import move
 from collections import OrderedDict
 from functools import wraps
 
-import numpy as np
+import sys
 import pandas as pd
 from flask import (request, redirect, url_for,
                    render_template, send_from_directory,
@@ -132,6 +132,7 @@ def import_file(filename, type):
         return redirect(url_for('upload_file', type=type))
 
     except Exception as e:
+        print(e, file=sys.stderr)
         flash_mess('Ошибка. Обратитесь к администратору.')
         return redirect(url_for('upload_file', type=type))
 
