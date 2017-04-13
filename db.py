@@ -28,6 +28,13 @@ class DBConn:
         '''
         pass
 
+    def bulk_delete(self, docs):
+        '''
+        массовое удаление документов из бд по ид номерам 
+        :param docs: список документов для удаления 
+        :return: None
+        '''
+
 
 class DBConnCouch(DBConn):
     '''
@@ -85,6 +92,7 @@ class DBConnCouch(DBConn):
             reg_name -- название реестра
         '''
         t = self.get_time_now()
+        self.regs_info = self.conn['regs_info']
         if id_reg is not None:
             self.regs_info[id_reg]['modified'] = t
         else:
@@ -108,6 +116,17 @@ class DBConnCouch(DBConn):
         for i, rev in enumerate(self.conn.revisions(_id)):
             if i:
                 yield {k: v for k, v in rev.items()}
+
+    def del_reg_info_by_id(self, id_reg):
+        '''
+        удаление информации о реестре по id
+        :param id_reg: id реестра
+        :return: None
+        '''
+        self.regs_info = self.conn['regs_info']
+        del self.regs_info[id_reg]
+
+        self.write_reg_info()
 
     def add_user(self, name, email, password):
         t = self.get_time_now()

@@ -125,6 +125,12 @@ class RegistryDB:
         # db.bulk_delete(self.registry_dict)
 
 
+def delete_registry(id_reg):
+    db.del_reg_info_by_id(id_reg)
+    RegistryDB(id_reg=id_reg).delete
+    db.conn.view('_purge')
+
+
 class RegistryFormatter:
     '''
         верификация и форматирование реестра для импорта в БД

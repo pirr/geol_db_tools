@@ -183,6 +183,13 @@ def regs_list():
     return render_template('all_dbs.html', dbs=all_regs)
 
 
+@app.route('/regs/delete-<id_reg>', methods=['GET', 'POST'])
+@login_required
+def delete_reg(id_reg):
+    delete_registry(id_reg)
+    return redirect(url_for('regs_list'))
+
+
 @app.route('/get_filters', methods=['GET', 'POST'])
 def filters():
     filters_dict = OrderedDict()
