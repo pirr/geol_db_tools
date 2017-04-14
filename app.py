@@ -14,6 +14,7 @@ from flask import (request, redirect, url_for,
                    render_template, send_from_directory,
                    send_file, session)
 from werkzeug.utils import secure_filename
+import logging
 
 
 import forms
@@ -130,7 +131,7 @@ def import_file(filename, type):
         return redirect(url_for('upload_file', type=type))
 
     except Exception as e:
-        print(e, file=sys.stderr)
+        logging.exception('!ERROR!')
         flash_mess('Ошибка. Обратитесь к администратору.')
         return redirect(url_for('upload_file', type=type))
 
@@ -262,4 +263,8 @@ def page_not_found(e):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename='debug.log',
+                        level=logging.ERROR,
+                        format='\n%(asctime)s;%(message)s',
+                        datefmt='[%Y-%m-%d %H:%M:%S]')
     app.run(host="0.0.0.0")
