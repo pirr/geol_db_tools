@@ -9,7 +9,6 @@ from shutil import move
 from collections import OrderedDict
 from functools import wraps
 
-import sys
 import pandas as pd
 from flask import (request, redirect, url_for,
                    render_template, send_from_directory,
@@ -20,7 +19,6 @@ from werkzeug.utils import secure_filename
 import forms
 from _help_fun import flash_mess
 from setup import app, cdb
-from views import mango_query
 from registry import (RegistryFormatterNew, RegistryFormatterUpdate,
                       RegistryDownloaderWork, RegistryDownloaderActual,
                       RegistryExc, read_excel, delete_registry)
